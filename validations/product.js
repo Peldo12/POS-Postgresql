@@ -41,11 +41,6 @@ const updateProductSchema = joi.object({
     .string().optional().allow(null).label('Image'),
 }).required().unknown(false).label('Product Schema')
 
-const idSchema = joi.object({
-  id: joi
-    .number().integer().positive().required().label('ID')
-})
-
 const updateStockSchema = joi.object({
   transactions: joi.array().items({
     id: joi
@@ -77,4 +72,4 @@ const filterSchema = joi.object({
     .optional().label('Order By')
 }).optional().label('Filter Schema')
 
-module.exports = { createProductSchema, updateProductSchema, idSchema, updateStockSchema, filterSchema }
+module.exports = { createProductSchema, updateProductSchema, updateStockSchema, filterSchema }

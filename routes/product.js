@@ -21,10 +21,10 @@ const { oneMin, fiveMin } = require("../config/rateLimitTime");
 const validateBody = require("../middleware/validateBody");
 const validateParams = require("../middleware/validateParams");
 const validateQuery = require("../middleware/validateQuery");
+const { idSchema } = require('../validations/global')
 const {
   createProductSchema,
   updateProductSchema,
-  idSchema,
   updateStockSchema,
   filterSchema,
 } = require("../validations/product");

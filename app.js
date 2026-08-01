@@ -23,7 +23,7 @@ app.use((req ,res, next) => {
 app.use(require('./middleware/httpLogger'))
 
 app.use("/api/auth", require('./routes/auth'))
-// app.use("/api/users", require('./routes/user'))
+app.use("/api/user", require('./routes/user'))
 app.use("/api/product", require('./routes/product'))
 app.use("/api/order", require('./routes/order'))
 // app.use("/api/trash", require('./routes/trash'))
