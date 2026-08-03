@@ -5,7 +5,9 @@ const AppError = require('../utils/AppError')
 
 const {
   getUsers,
-  userById 
+  userById,
+  userByIdShort,
+  updateUser
 } = require('../models/user')
 
 async function users(req, res, next) {
@@ -25,7 +27,7 @@ async function users(req, res, next) {
 async function byId(req, res, next) {
   try {
     const {id} = req.params 
-    const found = await userById(id, 'EMAIL_VERIFY')
+    const found = await userByIdShort(id)
     if (!found) throw new AppError(404, 'User not found')
     
     success({
@@ -38,7 +40,23 @@ async function byId(req, res, next) {
   }
 }
 
+async function update(req, res, next) {
+  try {
+    const {id} = req.params
+    const found = await userByIdShort(id)
+    if (!found) throw new AppError(404, 'User not found')
+
+    const result = await updateUser({
+    ...req.body, id
+    })
+    res.send(result)
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   users,
-  byId
+  byId,
+  update
 }

@@ -21,6 +21,26 @@ async function getUsers(options) {
   return rows
 }
 
+async function userByIdShort(id) {
+  const { rows } = await pool.query(
+    `
+  SELECT 
+    u.id, 
+    u.username, 
+    u.email_verified_at,
+    r.name AS role,
+    u.last_login_at,
+    u.deleted_at
+  FROM users u 
+  LEFT JOIN roles r 
+  ON r.id = u.role_id
+  WHERE u.id = $1
+  `,
+    [id]
+  );
+  return rows[0]
+}
+
 async function userById(id, type = "REFRESH_TOKEN") {
   const { rows } = await pool.query(
     `
@@ -44,8 +64,53 @@ async function userById(id, type = "REFRESH_TOKEN") {
   return rows[0];
 }
 
+async function updateUser(options) {
+  const {
+    id, username, email, role, deleted
+  } = options
+  const params = []
+  let sql = `
+  UPDATE users 
+  SET
+    updated_at = NOW(), 
+  `
+  if (username) {
+    params.push(username)
+    sql += `username = $${params.length},`
+  }
+  
+  if (email) {
+    params.push(email)
+    sql += `
+      email = $${params.length},
+      email_verified_at = NULL,
+      `
+  }
+  
+  if (role) {
+    params.push(role)
+    sql += `role_id = $${params.length},`
+  }
+  
+  if (deleted) {
+    params.push(deleted)
+    sql += `deleted_at = $${params.length},`
+  }
+
+  params.push(id)
+  sql += `WHERE id = $${params.length}`
+
+  const {rows} = await pool.query(sql, params)
+  console.log({
+    sql,
+    params
+  })
+  return rows[0]
+}
 
 module.exports = {
   getUsers,
-  userById
+  userByIdShort,
+  userById,
+  updateUser
 };
