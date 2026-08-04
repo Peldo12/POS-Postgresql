@@ -1,11 +1,11 @@
-const generateToken = require('../helpers/token')
-const generateCrypto = require('../helpers/crypto')
-const dateNow = require('../helpers/date')
+const generateToken = require('../common/helpers/token')
+const generateCrypto = require('../common/helpers/crypto')
+const dateNow = require('../common/helpers/date')
 
-const { transactions, orderJoin, orderById } = require('../models/order')
-const success = require('../helpers/response')
-const sendEmail = require('../helpers/email')
-const AppError = require('../utils/AppError')
+const { transactions, orderJoin, orderById } = require('./model')
+const success = require('../common/helpers/response')
+const sendEmail = require('../common/helpers/email')
+const AppError = require('../common/utils/AppError')
 
 async function orders(req, res, next) {
   try {

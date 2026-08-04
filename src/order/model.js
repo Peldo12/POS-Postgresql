@@ -1,5 +1,5 @@
 const pool = require('../config/pool')
-const AppError = require('../utils/AppError')
+const AppError = require('../common/utils/AppError')
 
 async function transactions(options) {
   const {user, products, payment} = options

@@ -1,18 +1,18 @@
 const express = require('express')
 const router = express.Router()
 
-const { register, login, emailVerify, me, token, logout, forgotPass, resetPass } = require('../controllers/auth')
+const { register, login, emailVerify, me, token, logout, forgotPass, resetPass } = require('./controller')
 
-const validateBody = require('../middleware/validateBody')
+const validateBody = require('../common/middleware/validateBody')
 const { 
   createSchema, refreshSchema, loginSchema, newPass 
-} = require("../validations/auth")
+} = require("./validator")
 
 const {
   authenticate, authBody
-} = require('../middleware/authentication')
+} = require('../common/middleware/authentication')
 
-const limit = require('../middleware/limiter')
+const limit = require('../common/middleware/limiter')
 const { authLimit } = require('../config/rateLimitConfig')
 const { fiveMin } = require('../config/rateLimitTime')
 

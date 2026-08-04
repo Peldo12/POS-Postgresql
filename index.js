@@ -1,5 +1,5 @@
 require('dotenv').config({quiet: true})
-const app = require('./app')
+const app = require('./src/app')
 const port = process.env.PORT || 3040
 
 app.listen(port, () => {

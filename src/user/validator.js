@@ -13,3 +13,5 @@ const updateSchema = joi.object({
   deleted: joi.string().valid('true', 'false')
     .optional().label('Deleted')
 })
+
+module.exports = {updateSchema}

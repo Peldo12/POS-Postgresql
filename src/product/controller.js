@@ -4,12 +4,13 @@ const {
   updateProduct,
   updateStockProduct,
   removeOrRestoreProduct,
+  permanentRemoveProduct,
   productJoin,
   statsProduct,
-} = require("../models/product");
-const success = require("../helpers/response");
-const dateNow = require("../helpers/date");
-const AppError = require("../utils/AppError");
+} = require("./model");
+const success = require("../common/helpers/response");
+const dateNow = require("../common/helpers/date");
+const AppError = require("../common/utils/AppError");
 
 /**
  * @desc get all products
@@ -249,6 +250,14 @@ async function restore(req, res, next) {
   }
 }
 
+async function removePermanent(req, res, next) {
+  try {
+    
+  } catch (error) {
+    
+  }
+}
+
 async function stats(req, res, next) {
   try {
     const data = await statsProduct();
@@ -270,5 +279,6 @@ module.exports = {
   updateStock,
   remove,
   restore,
+  removePermanent,
   stats,
 };

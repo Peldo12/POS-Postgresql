@@ -1,14 +1,14 @@
-const success = require('../helpers/response')
-const sendEmail = require('../helpers/email')
-const dateNow = require('../helpers/date')
-const AppError = require('../utils/AppError')
+const success = require('../common/helpers/response')
+const sendEmail = require('../common/helpers/email')
+const dateNow = require('../common/helpers/date')
+const AppError = require('../common/utils/AppError')
 
 const {
   getUsers,
   userById,
   userByIdShort,
   updateUser
-} = require('../models/user')
+} = require('./model')
 
 async function users(req, res, next) {
   try {

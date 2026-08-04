@@ -11,25 +11,25 @@ const {
   remove,
   restore,
   stats,
-} = require("../controllers/product");
-const { authenticate } = require("../middleware/authentication");
+} = require("./controller");
+const { authenticate } = require("../common/middleware/authentication");
 
-const limit = require("../middleware/limiter");
+const limit = require("../common/middleware/limiter");
 const { transactionLimit } = require("../config/rateLimitConfig");
 const { oneMin, fiveMin } = require("../config/rateLimitTime");
 
-const validateBody = require("../middleware/validateBody");
-const validateParams = require("../middleware/validateParams");
-const validateQuery = require("../middleware/validateQuery");
-const { idSchema } = require('../validations/global')
+const validateBody = require("../common/middleware/validateBody");
+const validateParams = require("../common/middleware/validateParams");
+const validateQuery = require("../common/middleware/validateQuery");
+const { idSchema } = require('../common/global')
 const {
   createProductSchema,
   updateProductSchema,
   updateStockSchema,
   filterSchema,
-} = require("../validations/product");
+} = require("./validator");
 
-const authorize = require("../middleware/authorize");
+const authorize = require("../common/middleware/authorize");
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require("../constants/roles");
 
 // constants

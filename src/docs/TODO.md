@@ -15,14 +15,14 @@
 - [x] Get Products
 - [x] Get Product by ID
 - [x] Create Product
-- [ ] Update Product
+- [x] Update Product
 - [ ] Update Stock
 - [ ] Soft Delete
 - [ ] Restore
 
 ## Categories
 
-- [ ] CRUD Category
+- [x] CRUD Category
 
 ## Testing
 

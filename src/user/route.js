@@ -1,11 +1,11 @@
 const express = require('express')
 const router = express.Router()
 
-const { authenticate } = require('../middleware/authentication')
-const { users, byId, update } = require('../controllers/user')
+const { authenticate } = require('../common/middleware/authentication')
+const { users, byId, update } = require('./controller')
 
-const validateParams = require('../middleware/validateParams')
-const { idSchema } = require('../validations/global')
+const validateParams = require('../common/middleware/validateParams')
+const { idSchema } = require('../common/global')
   
 router.use(authenticate)
 

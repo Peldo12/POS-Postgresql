@@ -1,7 +1,7 @@
-const { getCategories, getCategoryIdentifier, createCategory, updateCategory, removeOrRestoreCategory } = require('../models/category')
-const success = require('../helpers/response')
-const dateNow = require('../helpers/date')
-const AppError = require('../utils/AppError')
+const { getCategories, getCategoryIdentifier, createCategory, updateCategory, removeOrRestoreCategory } = require('./model')
+const success = require('../common/helpers/response')
+const dateNow = require('../common/helpers/date')
+const AppError = require('../common/utils/AppError')
 
 /**
  * @desc get all categories

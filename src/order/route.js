@@ -1,10 +1,10 @@
 const express = require('express')
 const router = express.Router()
 
-const { orders, byId, create } = require('../controllers/order')
-const { authenticate } = require('../middleware/authentication')
+const { orders, byId, create } = require('./controller')
+const { authenticate } = require('../common/middleware/authentication')
 
-const limit = require('../middleware/limiter')
+const limit = require('../common/middleware/limiter')
 const {
   transactionLimit
 } = require('../config/rateLimitConfig')
@@ -13,13 +13,13 @@ const {
   fiveMin
 } = require('../config/rateLimitTime')
 
-const validateBody = require('../middleware/validateBody')
-const validateQuery = require('../middleware/validateQuery')
+const validateBody = require('../common/middleware/validateBody')
+const validateQuery = require('../common/middleware/validateQuery')
 const {
   createSchema, filterSchema 
-} = require('../validations/order')
+} = require('./validator')
 
-const authorize = require('../middleware/authorize')
+const authorize = require('../common/middleware/authorize')
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles')
 
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN]

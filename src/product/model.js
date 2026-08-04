@@ -1,5 +1,5 @@
 const pool = require("../config/pool");
-const AppError = require("../utils/AppError");
+const AppError = require("../common/utils/AppError");
 
 async function productByIdentifier(options) {
   const { id, sku, name } = options;
@@ -270,6 +270,15 @@ async function removeOrRestoreProduct(options) {
   }
 }
 
+async function permanentRemoveProduct(id) {
+  const {rows} = await pool.query(`
+  DELETE products
+  WHERE id = $1
+  `, [id]) 
+
+  return rows
+}
+
 async function productJoin(filters) {
   const {
     page = 1,
@@ -377,6 +386,7 @@ module.exports = {
   updateProduct,
   updateStockProduct,
   removeOrRestoreProduct,
+  permanentRemoveProduct,
   productJoin,
   statsProduct,
 };

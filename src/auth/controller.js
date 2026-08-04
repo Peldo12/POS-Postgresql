@@ -1,14 +1,14 @@
 const bcrypt = require('bcryptjs')
 
-const generateToken = require('../helpers/token')
-const generateCrypto = require('../helpers/crypto')
-const dateNow = require('../helpers/date')
+const generateToken = require('../common/helpers/token')
+const generateCrypto = require('../common/helpers/crypto')
+const dateNow = require('../common/helpers/date')
 
-const { userById } = require('../models/user')
-const { userByUsernameOrEmail, userByIdentifier,  userByToken, registerUser, createOrUpdateToken, updateUserVerify, updateUserPass } = require('../models/auth')
-const success = require('../helpers/response')
-const sendEmail = require('../helpers/email')
-const AppError = require('../utils/AppError')
+const { userById } = require('../user/model')
+const { userByUsernameOrEmail, userByIdentifier,  userByToken, registerUser, createOrUpdateToken, updateUserVerify, updateUserPass } = require('./model')
+const success = require('../common/helpers/response')
+const sendEmail = require('../common/helpers/email')
+const AppError = require('../common/utils/AppError')
 
 /**
  * @desc register user
