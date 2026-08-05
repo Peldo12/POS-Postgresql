@@ -27,12 +27,30 @@ async function productByIdentifier(options) {
   return rows[0];
 }
 
-async function createProduct(options) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const { product, user } = options;
-    const {
+async function create(options) {
+  const { client, product } = options;
+  const {
+    sku,
+    barcode,
+    name,
+    buy,
+    sell,
+    category_id,
+    stock,
+    minimum_stock,
+    weight,
+    image,
+  } = product;
+
+  const { rows } = await client.query(
+    `INSERT INTO products 
+        (sku, barcode, name,
+        buy, sell, category_id, 
+        stock, minimum_stock, 
+        weight, image) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+    [
       sku,
       barcode,
       name,
@@ -43,58 +61,40 @@ async function createProduct(options) {
       minimum_stock,
       weight,
       image,
-    } = product;
+    ],
+  );
 
-    const { rows } = await client.query(
-      `INSERT INTO products 
-        (sku, barcode, name,
-        buy, sell, category_id, 
-        stock, minimum_stock, 
-        weight, image) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *`,
-      [
-        sku,
-        barcode,
-        name,
-        buy,
-        sell,
-        category_id,
-        stock,
-        minimum_stock,
-        weight,
-        image,
-      ],
-    );
-
-    await updateProductInfo({
-      client,
-      productId: rows[0].id, 
-      userId: user.id
-    });
-    await createProductLog({
-      client,
-      userId: user.id,
-      action: 'CREATE',
-      data: {...product, id : rows[0].id}
-    })
-
-    await client.query("COMMIT");
-    return rows;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    await client.release();
-  }
+  return rows;
 }
 
-async function updateProduct(options) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const { product, user } = options;
-    const {
+async function update(options) {
+  const { client, product } = options;
+  const {
+    sku,
+    barcode,
+    name,
+    buy,
+    sell,
+    category_id,
+    stock,
+    minimum_stock,
+    weight,
+    image,
+    id,
+  } = product;
+
+  const { rows } = await client.query(
+    `UPDATE products p
+      SET 
+        sku = $1, barcode = $2, name = $3,
+        buy = $4, sell = $5, category_id = $6,
+        stock = $7, minimum_stock = $8,
+        weight = $9, image = $10
+      WHERE id = $11 
+      RETURNING id, sku, barcode, name, buy, sell,
+      category_id, stock, minimum_stock, weight,
+      image`,
+    [
       sku,
       barcode,
       name,
@@ -106,92 +106,9 @@ async function updateProduct(options) {
       weight,
       image,
       id,
-    } = product;
-
-    const { rows } = await client.query(
-      `UPDATE products p
-      SET 
-        sku = $1, barcode = $2, name = $3,
-        buy = $4, sell = $5, category_id = $6,
-        stock = $7, minimum_stock = $8,
-        weight = $9, image = $10
-      WHERE id = $11 
-      RETURNING id, sku, barcode, name, buy, sell,
-      category_id, stock, minimum_stock, weight,
-      image`,
-      [
-        sku,
-        barcode,
-        name,
-        buy,
-        sell,
-        category_id,
-        stock,
-        minimum_stock,
-        weight,
-        image,
-        id,
-      ],
-    );
-
-    await updateProductInfo({
-      client,
-      productId: id, 
-      userId: user.id
-    });
-    await createProductLog({
-      client,
-      userId: user.id,
-      action: 'CREATE',
-      data: {...product, id : rows[0].id}
-    })
-
-    await client.query("COMMIT");
-    return rows;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    await client.release();
-  }
-}
-
-async function updateProductInfo(options) {
-  const { client, productId, userId } = options
-  await client.query(
-    `
-    INSERT INTO product_info 
-      (product_id, created_by, updated_by)
-    VALUES
-      ($1, $2, $2)
-    ON CONFLICT (product_id)
-    DO UPDATE
-    SET
-      product_id = EXCLUDED.product_id,
-      updated_at = NOW(),
-      updated_by = EXCLUDED.updated_by
-  `,
-    [productId, userId || "Anonymous"],
+    ],
   );
-}
-
-async function createProductLog(options) {
-  try {
-    const { client, action, userId, data } = options
-    const id = data.id
-    const old = await productByIdentifier({id})
-    await client.query(
-      `
-      INSERT INTO product_log
-        (product_id, user_id, action, old_data, new_data)
-      VALUES
-        ($1, $2, $3, $4, $5)
-    `,
-      [id, userId, action, old, data]
-    )
-  } catch (error) {
-    throw error
-  }
+  return rows;
 }
 
 async function updateStockProduct(data) {
@@ -220,63 +137,41 @@ async function updateStockProduct(data) {
   }
 }
 
-async function removeOrRestoreProduct(options) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const { id, value = null, user } = options;
-    const params = [];
-    let action = value ? 'REMOVE' : 'RESTORE'
-    params.push(value);
-    let setClause = `
+async function removeOrRestore(options) {
+  const { client, id, value = null, user } = options;
+  const params = [];
+  params.push(value);
+  let setClause = `
       UPDATE product_info
       SET deleted_at = $${params.length}
     `;
-    if (value) {
-      params.push(user.id);
-      setClause += `, deleted_by = $${params.length}`;
-    } else {
-      setClause += `, deleted_by = NULL`;
-    }
-    params.push(id);
-    const { rows } = await client.query(
-      `${setClause}
+  if (value) {
+    params.push(user.id);
+    setClause += `, deleted_by = $${params.length}`;
+  } else {
+    setClause += `, deleted_by = NULL`;
+  }
+  params.push(id);
+  const { rows } = await client.query(
+    `${setClause}
       WHERE product_id = $${params.length}
       RETURNING product_id`,
-      params,
-    );
-    const old = await productByIdentifier({id})
+    params,
+  );
 
-    await updateProductInfo({
-      client,
-      productId: id, 
-      userId: user.id
-    });
-    await createProductLog({
-      client,
-      userId: user.id,
-      action,
-      data: old
-    })
-    
-    await client.query("COMMIT");
-    const product = await productByIdentifier({ id });
-    return product;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    await client.release();
-  }
+  return rows;
 }
 
 async function permanentRemoveProduct(id) {
-  const {rows} = await pool.query(`
+  const { rows } = await pool.query(
+    `
   DELETE products
   WHERE id = $1
-  `, [id]) 
+  `,
+    [id],
+  );
 
-  return rows
+  return rows;
 }
 
 async function productJoin(filters) {
@@ -382,10 +277,10 @@ async function statsProduct() {
 
 module.exports = {
   productByIdentifier,
-  createProduct,
-  updateProduct,
+  create,
+  update,
   updateStockProduct,
-  removeOrRestoreProduct,
+  removeOrRestore,
   permanentRemoveProduct,
   productJoin,
   statsProduct,

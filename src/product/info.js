@@ -1,5 +1,5 @@
-async function updateInfo(options) {
-  const { client, productId, userId } = options
+async function create(options) {
+  const { client, productId, userId } = options;
   await client.query(
     `
     INSERT INTO product_info 
@@ -17,4 +17,4 @@ async function updateInfo(options) {
   );
 }
 
-module.exports = updateInfo
+module.exports = { create };

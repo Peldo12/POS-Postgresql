@@ -1,13 +1,15 @@
 const {
   productByIdentifier,
-  createProduct,
-  updateProduct,
   updateStockProduct,
-  removeOrRestoreProduct,
   permanentRemoveProduct,
   productJoin,
   statsProduct,
 } = require("./model");
+const {
+  createProduct,
+  updateProduct,
+  removeOrRestoreProduct,
+} = require("./service");
 const success = require("../common/helpers/response");
 const dateNow = require("../common/helpers/date");
 const AppError = require("../common/utils/AppError");
@@ -252,10 +254,7 @@ async function restore(req, res, next) {
 
 async function removePermanent(req, res, next) {
   try {
-    
-  } catch (error) {
-    
-  }
+  } catch (error) {}
 }
 
 async function stats(req, res, next) {

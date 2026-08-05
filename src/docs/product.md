@@ -1,4 +1,5 @@
 ## GET /products
+
 - [x] No token
 - [x] Invalid token
 - [x] Expired token
@@ -12,11 +13,13 @@
 - [x] Page more than total
 
 ## GET /products/:id
+
 - [x] Valid ID
 - [x] Non product ID
 - [x] ID Validation
 
 ## POST /products
+
 - [x] Valid data
 - [x] Duplicate SKU
 - [x] No category
@@ -25,10 +28,10 @@
 - [x] Invalid JSON format
 
 PUT /products/:id
-□ Update normal
-□ SKU bentrok
-□ Barcode bentrok
-□ ID tidak ada
+
+- [x] Update normal
+- [x] SKU bentrok
+- [x] ID tidak ada
 
 PATCH /products/stocks/update
 □ Stock bertambah
