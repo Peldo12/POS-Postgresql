@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const logger = require("./common/middleware/logger");
 const cors = require("cors");
-const initDB = require("./config/initDB");
-initDB();
+require("./config/initDB")();
+require("./config/agent")();
 
 app.use(express.json());
 // app.use(express.static("/public/upload"))

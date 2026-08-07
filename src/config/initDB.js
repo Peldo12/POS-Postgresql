@@ -149,10 +149,11 @@ async function createTable() {
     id SERIAL PRIMARY KEY,
     file_id TEXT NOT NULL UNIQUE,
     file_name TEXT NOT NULL,
+    type TEXT NOT NULL,
     file_size INTEGER NOT NULL,
-    uploaded_by VARCHAR(64) NOT NULL,
-    )
-    `);
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    uploaded_by VARCHAR(64) NOT NULL
+    )`);
   } catch (e) {
     console.log(e);
   }
