@@ -3,6 +3,22 @@ const info = require("./info");
 const log = require("./log");
 const model = require("./model");
 
+async function getProducts(filters) {
+  try {
+    return await model.productJoin(filters);
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getById(id) {
+  try {
+    return await model.productByIdentifier({ id });
+  } catch (error) {
+    throw error;
+  }
+}
+
 async function createProduct(options) {
   const client = await pool.connect();
   try {
@@ -98,4 +114,10 @@ async function removeOrRestoreProduct(options) {
   }
 }
 
-module.exports = { createProduct, updateProduct, removeOrRestoreProduct };
+module.exports = {
+  getProducts,
+  getById,
+  createProduct,
+  updateProduct,
+  removeOrRestoreProduct,
+};

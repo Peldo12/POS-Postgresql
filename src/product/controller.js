@@ -6,6 +6,8 @@ const {
   statsProduct,
 } = require("./model");
 const {
+  getProducts,
+  getById,
   createProduct,
   updateProduct,
   removeOrRestoreProduct,
@@ -34,7 +36,7 @@ async function products(req, res, next) {
       orderBy: req.query.orderBy?.toUpperCase() === "DESC" ? "DESC" : "ASC",
     };
 
-    const { products, pagination } = await productJoin(filters);
+    const { products, pagination } = await getProducts(filters);
     req.logger.info(`Products loaded by ${req.user.username}`, {
       user: req.user.username,
       role: req.user.role,
@@ -62,7 +64,7 @@ async function byId(req, res, next) {
     if (!req.user) throw new AppError(401, "Unauthenticated");
     const { id } = req.params;
 
-    const product = await productByIdentifier({ id });
+    const product = await getById(id);
     if (!product) throw new AppError(404, "Product not found");
     success({
       message: `Product id ${id} loaded`,

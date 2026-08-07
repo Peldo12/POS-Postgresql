@@ -49,7 +49,8 @@ async function create(options) {
         stock, minimum_stock, 
         weight, image) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *`,
+      RETURNING id, sku, barcode, name, buy::int, sell::int,
+      category_id, stock::int, minimum_stock::int, weight::int, image`,
     [
       sku,
       barcode,
@@ -91,8 +92,8 @@ async function update(options) {
         stock = $7, minimum_stock = $8,
         weight = $9, image = $10
       WHERE id = $11 
-      RETURNING id, sku, barcode, name, buy, sell,
-      category_id, stock, minimum_stock, weight,
+      RETURNING id, sku, barcode, name, buy::int, sell::int,
+      category_id, stock::int, minimum_stock::int, weight::int,
       image`,
     [
       sku,
@@ -155,7 +156,7 @@ async function removeOrRestore(options) {
   const { rows } = await client.query(
     `${setClause}
       WHERE product_id = $${params.length}
-      RETURNING product_id`,
+      RETURNING product_id::int`,
     params,
   );
 
@@ -165,7 +166,7 @@ async function removeOrRestore(options) {
 async function permanentRemoveProduct(id) {
   const { rows } = await pool.query(
     `
-  DELETE products
+  DELETE FROM products
   WHERE id = $1
   `,
     [id],
@@ -213,7 +214,7 @@ async function productJoin(filters) {
   ${whereClause}`;
 
   let sql = `
-    SELECT p.id, p.sku, p.barcode, p.name, c.name AS category, p.buy, p.sell, p.image 
+    SELECT p.id, p.sku, p.barcode, p.name, c.name AS category, p.buy::int, p.sell::int, p.image 
     FROM products p 
     JOIN categories c 
     ON p.category_id = c.id 

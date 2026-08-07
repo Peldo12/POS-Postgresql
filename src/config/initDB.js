@@ -39,9 +39,7 @@ async function createTable() {
       VALUES 
         ($1, $2, NOW(), 4, $3)
       ON CONFLICT DO NOTHING`,
-      [process.env.SUPER_NAME,
-       process.env.SUPER_EMAIL,
-       hashed],
+      [process.env.SUPER_NAME, process.env.SUPER_EMAIL, hashed],
     );
 
     await pool.query(`
@@ -118,7 +116,7 @@ async function createTable() {
     old_data JSONB DEFAULT NULL,
     new_data JSONB DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`)
+    )`);
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
@@ -145,6 +143,16 @@ async function createTable() {
     CHECK (sell >= 0)
     
     )`);
+
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS cloud_files (
+    id SERIAL PRIMARY KEY,
+    file_id TEXT NOT NULL UNIQUE,
+    file_name TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    uploaded_by VARCHAR(64) NOT NULL,
+    )
+    `);
   } catch (e) {
     console.log(e);
   }
