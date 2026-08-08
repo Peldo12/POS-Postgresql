@@ -3,7 +3,16 @@ const agent = require("../config/agent");
 
 async function create(options) {
   try {
-    await model.create(options);
+    const result = await model.create(options);
+    return result.id;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function byId(id) {
+  try {
+    return await model.byId(id);
   } catch (error) {
     throw error;
   }
@@ -11,12 +20,12 @@ async function create(options) {
 
 async function answer(prompt) {
   try {
-    const result = await agent(prompt);
+    const result = await agent(prompt || "");
 
     return await result;
   } catch (error) {
-    console.log(error);
+    throw error;
   }
 }
 
-module.exports = { create, answer };
+module.exports = { create, byId, answer };

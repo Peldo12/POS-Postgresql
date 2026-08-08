@@ -1,7 +1,7 @@
-const pool = require("../config/pool");
-const info = require("./info");
-const log = require("./log");
-const model = require("./model");
+const pool = require('../config/pool');
+const info = require('./info');
+const log = require('./log');
+const model = require('./model');
 
 async function getProducts(filters) {
   try {
@@ -11,9 +11,9 @@ async function getProducts(filters) {
   }
 }
 
-async function getById(id) {
+async function getById(options) {
   try {
-    return await model.productByIdentifier({ id });
+    return await model.productByIdentifier(options);
   } catch (error) {
     throw error;
   }
@@ -23,28 +23,28 @@ async function createProduct(options) {
   const client = await pool.connect();
   try {
     const { product, user } = options;
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const result = await model.create({
       client,
-      product,
+      product
     });
     await info.create({
       client,
       productId: result[0].id,
-      userId: user.id,
+      userId: user.id
     });
     await log.create({
       client,
-      action: "UPDATE",
+      action: 'UPDATE',
       userId: user.id,
-      data: { ...product, id: result[0].id },
+      data: { ...product, id: result[0].id }
     });
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();
@@ -55,28 +55,28 @@ async function updateProduct(options) {
   const client = await pool.connect();
   try {
     const { product, user } = options;
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const result = await model.update({
       client,
-      product,
+      product
     });
     await info.create({
       client,
       productId: product.id,
-      userId: user.id,
+      userId: user.id
     });
     await log.create({
       client,
-      action: "UPDATE",
+      action: 'UPDATE',
       userId: user.id,
-      data: product,
+      data: product
     });
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();
@@ -86,13 +86,13 @@ async function updateProduct(options) {
 async function removeOrRestoreProduct(options) {
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
     const { id, value = null, user } = options;
-    let action = value ? "REMOVE" : "RESTORE";
+    let action = value ? 'REMOVE' : 'RESTORE';
 
     const result = await model.removeOrRestore({
       client,
-      ...options,
+      ...options
     });
     const old = await model.productByIdentifier({ id });
 
@@ -100,17 +100,30 @@ async function removeOrRestoreProduct(options) {
       client,
       userId: user.id,
       action,
-      data: old,
+      data: old
     });
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     const product = await model.productByIdentifier({ id });
     return product;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();
+  }
+}
+
+async function permanentDelete() {
+  const client = await pool.connect();
+  try {
+    const result = await model.permanentRemoveProduct(id);
+
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
   }
 }
 
@@ -120,4 +133,5 @@ module.exports = {
   createProduct,
   updateProduct,
   removeOrRestoreProduct,
+  permanentDelete
 };

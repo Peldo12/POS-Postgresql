@@ -1,16 +1,11 @@
-const {
-  productByIdentifier,
-  updateStockProduct,
-  permanentRemoveProduct,
-  productJoin,
-  statsProduct,
-} = require("./model");
+const { updateStockProduct, statsProduct } = require("./model");
 const {
   getProducts,
   getById,
   createProduct,
   updateProduct,
   removeOrRestoreProduct,
+  permanentDelete,
 } = require("./service");
 const success = require("../common/helpers/response");
 const dateNow = require("../common/helpers/date");
@@ -64,7 +59,7 @@ async function byId(req, res, next) {
     if (!req.user) throw new AppError(401, "Unauthenticated");
     const { id } = req.params;
 
-    const product = await getById(id);
+    const product = await getById({ id });
     if (!product) throw new AppError(404, "Product not found");
     success({
       message: `Product id ${id} loaded`,
@@ -91,7 +86,7 @@ async function create(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, "Unauthenticated");
     const { sku } = req.body;
-    const found = await productByIdentifier({ sku });
+    const found = await getById({ sku });
     if (found && sku === found.sku) throw new AppError(400, "SKU already used");
 
     const product = await createProduct({
@@ -130,7 +125,7 @@ async function update(req, res, next) {
     const { id } = req.params;
 
     const { sku } = req.body;
-    const found = await productByIdentifier({ id });
+    const found = await getById({ id });
     if (!found) throw new AppError(404, "Product not found");
     if (sku !== found.sku) throw new AppError(400, "SKU unable to change");
     const result = await updateProduct({
@@ -193,7 +188,7 @@ async function remove(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, "Unauthenticated");
     const { id } = req.params;
-    const found = await productByIdentifier({ id });
+    const found = await getById({ id });
     if (!found) throw new AppError(404, "Product not found");
     if (found.deleted_at) throw new AppError(400, "Product already deleted");
 
@@ -228,7 +223,7 @@ async function restore(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, "Unauthenticated");
     const { id } = req.params;
-    const found = await productByIdentifier({ id });
+    const found = await getById({ id });
     if (!found) throw new AppError(404, "Product not found");
     if (!found.deleted_at) throw new AppError(400, "Product not deleted");
 
@@ -256,7 +251,22 @@ async function restore(req, res, next) {
 
 async function removePermanent(req, res, next) {
   try {
-  } catch (error) {}
+    const { id } = req.params;
+    const found = await getById({ id });
+    if (!found) throw new AppError(404, "Product not found");
+
+    const result = await removePermanent(id);
+    success({
+      message: `Product ${id} permanent deleted`,
+      data: { products: [result] },
+      res,
+    });
+  } catch (error) {
+    req.logger.error(`Failed permanent delete product ${req.params.id}`, {
+      error: e,
+    });
+    next(e);
+  }
 }
 
 async function stats(req, res, next) {

@@ -1,5 +1,5 @@
-const pool = require("../config/pool");
-const AppError = require("../common/utils/AppError");
+const pool = require('../config/pool');
+const AppError = require('../common/utils/AppError');
 
 async function productByIdentifier(options) {
   const { id, sku, name } = options;
@@ -39,7 +39,7 @@ async function create(options) {
     stock,
     minimum_stock,
     weight,
-    image,
+    image
   } = product;
 
   const { rows } = await client.query(
@@ -61,8 +61,8 @@ async function create(options) {
       stock,
       minimum_stock,
       weight,
-      image,
-    ],
+      image
+    ]
   );
 
   return rows;
@@ -81,7 +81,7 @@ async function update(options) {
     minimum_stock,
     weight,
     image,
-    id,
+    id
   } = product;
 
   const { rows } = await client.query(
@@ -106,8 +106,8 @@ async function update(options) {
       minimum_stock,
       weight,
       image,
-      id,
-    ],
+      id
+    ]
   );
   return rows;
 }
@@ -116,7 +116,7 @@ async function updateStockProduct(data) {
   const result = [];
   const client = pool.connect();
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
     for (const product of data) {
       const { updateStock, id } = product;
       const sql = `
@@ -126,12 +126,12 @@ async function updateStockProduct(data) {
       const stockUpdate = await client.query(sql, [updateStock, id]);
       if (stockUpdate.rowCount === 0)
         throw new AppError(400, `Insufficient stock product ${id}`);
-      result.push({ id, status: "success" });
+      result.push({ id, status: 'success' });
     }
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return { item: result };
   } catch (e) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw e;
   } finally {
     await client.release();
@@ -157,7 +157,7 @@ async function removeOrRestore(options) {
     `${setClause}
       WHERE product_id = $${params.length}
       RETURNING product_id::int`,
-    params,
+    params
   );
 
   return rows;
@@ -169,7 +169,7 @@ async function permanentRemoveProduct(id) {
   DELETE FROM products
   WHERE id = $1
   `,
-    [id],
+    [id]
   );
 
   return rows;
@@ -184,13 +184,13 @@ async function productJoin(filters) {
     categoryId,
     minPrice,
     maxPrice,
-    sort = "id",
-    orderBy = "ASC",
+    sort = 'id',
+    orderBy = 'ASC'
   } = filters;
 
   const offset = (page - 1) * limit;
 
-  let whereClause = "WHERE pi.deleted_at IS NULL";
+  let whereClause = 'WHERE pi.deleted_at IS NULL';
   const params = [];
 
   if (search) {
@@ -201,7 +201,7 @@ async function productJoin(filters) {
     params.push(categoryId);
     whereClause += ` AND p.category_id = $${params.length}`;
   }
-  if (range === "price" && minPrice && maxPrice) {
+  if (range === 'price' && minPrice && maxPrice) {
     params.push(minPrice, maxPrice);
     whereClause += ` AND sell BETWEEN $${params.length - 1} AND $${params.length}`;
   }
@@ -221,7 +221,7 @@ async function productJoin(filters) {
     JOIN product_info pi
     ON pi.product_id = p.id
     ${whereClause}`;
-  const direction = orderBy.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
   sql += ` ORDER BY p.${sort} ${direction}`;
 
   params.push(limit, offset);
@@ -229,7 +229,7 @@ async function productJoin(filters) {
 
   const [countResult, dataResult] = await Promise.all([
     pool.query(countSql, params.slice(0, params.length - 2)),
-    pool.query(sql, params),
+    pool.query(sql, params)
   ]);
 
   return {
@@ -237,8 +237,8 @@ async function productJoin(filters) {
     pagination: {
       page: +page,
       limit: +limit,
-      total: +countResult.rows[0].count,
-    },
+      total: +countResult.rows[0].count
+    }
   };
 }
 
@@ -264,15 +264,15 @@ async function statsProduct() {
       WHERE 
         pi.deleted_at IS NULL 
         AND p.stock <= p.minimum_stock
-    `),
+    `)
   ]);
 
   return {
     stats: {
       products: +product.rows[0].count,
       categories: +categories.rows[0].count,
-      low: +low.rows[0].count,
-    },
+      low: +low.rows[0].count
+    }
   };
 }
 
@@ -284,5 +284,5 @@ module.exports = {
   removeOrRestore,
   permanentRemoveProduct,
   productJoin,
-  statsProduct,
+  statsProduct
 };

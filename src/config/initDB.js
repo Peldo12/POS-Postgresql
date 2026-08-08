@@ -146,11 +146,11 @@ async function createTable() {
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS cloud_files (
-    id SERIAL PRIMARY KEY,
-    file_id TEXT NOT NULL UNIQUE,
-    file_name TEXT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    file_id TEXT NOT NULL,
+    file_name TEXT,
     type TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
+    file_size BIGINT NOT NULL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     uploaded_by VARCHAR(64) NOT NULL
     )`);
