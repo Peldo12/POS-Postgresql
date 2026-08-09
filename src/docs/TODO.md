@@ -3,12 +3,12 @@
 ## Authentication
 
 - [x] Register
-- [x] Verify Email
+- [ ] Verify Email
 - [x] Login
-- [x] Refresh Token
-- [x] Logout
-- [x] Forgot Password
-- [x] Reset Password
+- [ ] Refresh Token
+- [ ] Logout
+- [ ] Forgot Password
+- [ ] Reset Password
 
 ## Products
 
@@ -16,9 +16,9 @@
 - [x] Get Product by ID
 - [x] Create Product
 - [x] Update Product
-- [ ] Update Stock
-- [ ] Soft Delete
-- [ ] Restore
+- [x] Update Stock
+- [x] Soft Delete
+- [x] Restore
 
 ## Categories
 

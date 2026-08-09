@@ -1,7 +1,7 @@
-const pool = require("../config/pool");
+const pool = require('../config/pool');
 
 async function create(options) {
-  const { fileId, fileName, type, fileSize, userName } = options;
+  const { fileId, fileName, type, fileSize, userId } = options;
   const { rows } = await pool.query(
     `
   INSERT INTO cloud_files 
@@ -10,7 +10,7 @@ async function create(options) {
     ($1, $2, $3, $4, $5)
   RETURNING id
   `,
-    [fileId, fileName, type, fileSize, userName],
+    [fileId, fileName, type, fileSize, userId]
   );
 
   return rows[0];
@@ -21,7 +21,7 @@ async function byId(id) {
     `
   SELECT * FROM cloud_files WHERE id = $1
   `,
-    [id],
+    [id]
   );
   return rows[0];
 }

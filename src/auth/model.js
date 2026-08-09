@@ -1,8 +1,8 @@
-const pool = require('../config/pool')
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
+const pool = require('../config/pool');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
-const tokenExpired = require("../constants/tokenExpired");
+const tokenExpired = require('../constants/tokenExpired');
 
 async function userByUsernameOrEmail(data) {
   const { username, email } = data;
@@ -21,54 +21,37 @@ async function userByUsernameOrEmail(data) {
     ON r.id = u.role_id
     WHERE u.username = $1 
       OR u.email = $2`,
-    [username, email],
+    [username, email]
   );
   return rows[0];
 }
 
-async function registerUser(data) {
-  const client = await pool.connect();
-  try {
-    const { username, email, password } = data;
-    const hashed = await bcrypt.hash(password, 10);
-    await client.query("BEGIN");
-    const { rows } = await client.query(
-      `
+async function create(options) {
+  const { client, username, email, hashed } = options;
+  const { rows } = await client.query(
+    `
       INSERT INTO users 
       (username, email, password)
       VALUES
       ($1, $2, $3)
       RETURNING id, username, role_id
     `,
-      [username, email, hashed],
-    );
+    [username, email, hashed]
+  );
+  return rows[0];
+}
 
-    const user = rows[0];
-    const emailToken = crypto.randomBytes(32).toString("hex");
-
-    const type = "EMAIL_VERIFY";
-    await client.query(
-      `
+async function createEmailToken(options) {
+  const { client, userId, emailToken, type } = options;
+  await client.query(
+    `
       INSERT INTO user_tokens
       (user_id, token, type, expired_at)
       VALUES
       ($1, $2, $3, $4)
     `,
-      [user.id, emailToken, type, tokenExpired[type]],
-    );
-    await client.query("COMMIT");
-    return {
-      id: user.id,
-      username: user.username,
-      role_id: user.role_id,
-      emailToken,
-    };
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    await client.release();
-  }
+    [userId, emailToken, type, tokenExpired[type]]
+  );
 }
 
 async function userByToken(type, token) {
@@ -78,15 +61,16 @@ async function userByToken(type, token) {
     FROM user_tokens 
     WHERE token = $1 
       AND type = $2`,
-    [token, type],
+    [token, type]
   );
 
   return rows[0];
 }
 
 async function userByIdentifier(value) {
-  const {rows} = await pool.query(
-    `SELECT
+  const { rows } = await pool.query(
+    `
+    SELECT
         u.id,
         u.username,
         u.email,
@@ -98,30 +82,27 @@ async function userByIdentifier(value) {
       JOIN roles r 
       ON r.id = u.role_id
       WHERE (u.username = $1 OR u.email = $1)`,
-    [value],
+    [value]
   );
   return rows[0];
 }
 
-async function createOrUpdateToken(id, token, type) {
-  const client = await pool.connect();
-  try {
-    if (!id || token === undefined || !type)
-      throw new Error("Value still missing on create or update token");
-    await client.query("BEGIN");
-    if (token) {
-      await client.query(
-        `
-        UPDATE users
-        SET 
-          last_login_at = NOW()
-        WHERE id = $1
+async function updateLogin(client, id) {
+  await client.query(
+    `
+      UPDATE users
+      SET 
+        last_login_at = NOW()
+      WHERE id = $1
       `,
-        [id],
-      );
-    }
-    const { rows } = await client.query(
-      `
+    [id]
+  );
+}
+
+async function createToken(options) {
+  const { client, token, type, id } = options;
+  const { rows } = await client.query(
+    `
       INSERT INTO user_tokens
       (token, type, user_id, expired_at)
       VALUES
@@ -133,23 +114,15 @@ async function createOrUpdateToken(id, token, type) {
         used_at = NULL,
         created_at = CURRENT_TIMESTAMP
       RETURNING user_id, token, type, expired_at`,
-      [token, type, id, tokenExpired[type]],
-    );
-
-    await client.query("COMMIT");
-    return rows[0];
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    await client.release();
-  }
+    [token, type, id, tokenExpired[type]]
+  );
+  return rows[0];
 }
 
 async function updateUserVerify(id) {
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
     const { rows } = await client.query(
       `
     UPDATE users 
@@ -161,7 +134,7 @@ async function updateUserVerify(id) {
       username, 
       email_verified_at, 
       role_id`,
-      [id],
+      [id]
     );
 
     await client.query(
@@ -176,18 +149,18 @@ async function updateUserVerify(id) {
       type = $2 
     AND
       used_at IS NULL`,
-      [rows[0].id, "EMAIL_VERIFY"],
+      [rows[0].id, 'EMAIL_VERIFY']
     );
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     const user = rows[0];
     return {
       username: user.username,
       role_id: user.role_id,
-      email_verified_at: user.email_verified_at,
+      email_verified_at: user.email_verified_at
     };
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();
@@ -198,7 +171,7 @@ async function updateUserPass(id, password) {
   const client = await pool.connect();
   try {
     const hashed = await bcrypt.hash(password, 10);
-    await client.query("BEGIN");
+    await client.query('BEGIN');
     const { rows } = await client.query(
       `
       UPDATE users 
@@ -206,7 +179,7 @@ async function updateUserPass(id, password) {
       WHERE id = $2
       RETURNING id, username, role_id
     `,
-      [hashed, id],
+      [hashed, id]
     );
 
     await client.query(
@@ -221,13 +194,13 @@ async function updateUserPass(id, password) {
         type = $2 
       AND
         used_at IS NULL`,
-      [rows[0].id, "PASSWORD_RESET"],
+      [rows[0].id, 'PASSWORD_RESET']
     );
-    await client.query("COMMIT");
+    await client.query('COMMIT');
 
     return rows[0];
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
   } finally {
     await client.release();
   }
@@ -235,10 +208,12 @@ async function updateUserPass(id, password) {
 
 module.exports = {
   userByUsernameOrEmail,
-  registerUser, 
-  userByToken, 
+  create,
+  createEmailToken,
+  userByToken,
   userByIdentifier,
-  createOrUpdateToken, 
-  updateUserVerify, 
-  updateUserPass 
-}
+  updateLogin,
+  createToken,
+  updateUserVerify,
+  updateUserPass
+};

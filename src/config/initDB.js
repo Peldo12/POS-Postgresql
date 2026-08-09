@@ -1,5 +1,5 @@
-const pool = require("../config/pool");
-const bcrypt = require("bcryptjs");
+const pool = require('../config/pool');
+const bcrypt = require('bcryptjs');
 
 async function createTable() {
   try {
@@ -39,7 +39,7 @@ async function createTable() {
       VALUES 
         ($1, $2, NOW(), 4, $3)
       ON CONFLICT DO NOTHING`,
-      [process.env.SUPER_NAME, process.env.SUPER_EMAIL, hashed],
+      [process.env.SUPER_NAME, process.env.SUPER_EMAIL, hashed]
     );
 
     await pool.query(`
@@ -152,7 +152,7 @@ async function createTable() {
     type TEXT NOT NULL,
     file_size BIGINT NOT NULL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    uploaded_by VARCHAR(64) NOT NULL
+    uploaded_by BIGINT NOT NULL
     )`);
   } catch (e) {
     console.log(e);
