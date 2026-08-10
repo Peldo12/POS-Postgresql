@@ -54,7 +54,8 @@ async function createEmailToken(options) {
   );
 }
 
-async function userByToken(type, token) {
+async function userByToken(options) {
+  const { type, token } = options;
   const { rows } = await pool.query(
     `
     SELECT user_id, token, used_at
@@ -67,21 +68,45 @@ async function userByToken(type, token) {
   return rows[0];
 }
 
+async function userById(options) {
+  const { userId, type = 'REFRESH_TOKEN' } = options;
+  const { rows } = await pool.query(
+    `
+    SELECT
+      u.id,
+      u.username,
+      u.email,
+      u.password,
+      u.email_verified_at,
+      u.deleted_at,
+      r.name AS role,
+      t.token
+    FROM users u
+    JOIN roles r 
+    ON r.id = u.role_id
+    JOIN user_tokens t
+    ON t.user_id = u.id
+    WHERE u.id = $1 AND t.type = $2`,
+    [userId, type]
+  );
+  return rows[0];
+}
+
 async function userByIdentifier(value) {
   const { rows } = await pool.query(
     `
     SELECT
-        u.id,
-        u.username,
-        u.email,
-        u.password,
-        u.email_verified_at,
-        u.deleted_at,
-        r.name AS role
-      FROM users u
-      JOIN roles r 
-      ON r.id = u.role_id
-      WHERE (u.username = $1 OR u.email = $1)`,
+      u.id,
+      u.username,
+      u.email,
+      u.password,
+      u.email_verified_at,
+      u.deleted_at,
+      r.name AS role
+    FROM users u
+    JOIN roles r 
+    ON r.id = u.role_id
+    WHERE (u.username = $1 OR u.email = $1)`,
     [value]
   );
   return rows[0];
@@ -119,12 +144,9 @@ async function createToken(options) {
   return rows[0];
 }
 
-async function updateUserVerify(id) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const { rows } = await client.query(
-      `
+async function emailVerify(client, userId) {
+  const { rows } = await client.query(
+    `
     UPDATE users 
     SET 
       email_verified_at = NOW()
@@ -134,11 +156,14 @@ async function updateUserVerify(id) {
       username, 
       email_verified_at, 
       role_id`,
-      [id]
-    );
+    [userId]
+  );
+  return rows[0];
+}
 
-    await client.query(
-      `
+async function updateEmailToken(client, userId) {
+  await client.query(
+    `
     UPDATE user_tokens 
     SET 
       used_at = NOW(),
@@ -149,22 +174,8 @@ async function updateUserVerify(id) {
       type = $2 
     AND
       used_at IS NULL`,
-      [rows[0].id, 'EMAIL_VERIFY']
-    );
-
-    await client.query('COMMIT');
-    const user = rows[0];
-    return {
-      username: user.username,
-      role_id: user.role_id,
-      email_verified_at: user.email_verified_at
-    };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+    [userId, 'EMAIL_VERIFY']
+  );
 }
 
 async function updateUserPass(id, password) {
@@ -211,9 +222,11 @@ module.exports = {
   create,
   createEmailToken,
   userByToken,
+  userById,
   userByIdentifier,
   updateLogin,
   createToken,
-  updateUserVerify,
+  emailVerify,
+  updateEmailToken,
   updateUserPass
 };

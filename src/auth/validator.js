@@ -37,6 +37,13 @@ const refreshSchema = joi
   .required()
   .label('Body');
 
+const forgotSchema = joi
+  .object({
+    username: joi.string().required().label('Username or Email')
+  })
+  .required()
+  .label('Body');
+
 const newPass = joi
   .object({
     password: joi.string().min(5).required().label('Password'),
@@ -45,4 +52,10 @@ const newPass = joi
   .required()
   .label('Body');
 
-module.exports = { createSchema, loginSchema, refreshSchema, newPass };
+module.exports = {
+  createSchema,
+  loginSchema,
+  refreshSchema,
+  forgotSchema,
+  newPass
+};

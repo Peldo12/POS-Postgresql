@@ -5,7 +5,7 @@ const { register, login, emailVerify, me, token, logout, forgotPass, resetPass }
 
 const validateBody = require('../common/middleware/validateBody')
 const { 
-  createSchema, refreshSchema, loginSchema, newPass 
+  createSchema, refreshSchema, loginSchema, forgotSchema, newPass 
 } = require("./validator")
 
 const {
@@ -56,10 +56,18 @@ router.post(
   logout
 )
 
-router.post("/forgot", limit(authLimit), forgotPass)
+router.post(
+  "/forgot",
+  validateBody(forgotSchema), 
+  limit(authLimit), 
+  forgotPass
+)
 
 router.patch(
-  "/reset", validateBody(newPass), limit(authLimit), resetPass
+  "/reset", 
+  validateBody(newPass),
+  limit(authLimit),
+  resetPass
 )
 
 module.exports = router

@@ -1,12 +1,12 @@
-# POS Backend
+# POS Backend API
 
 ## Authentication
 
 - [x] Register
-- [ ] Verify Email
+- [x] Verify Email
 - [x] Login
-- [ ] Refresh Token
-- [ ] Logout
+- [x] Refresh Token
+- [x] Logout
 - [ ] Forgot Password
 - [ ] Reset Password
 

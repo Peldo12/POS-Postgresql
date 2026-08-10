@@ -96,7 +96,7 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const { username, password } = req.body;
-    const found = await service.getById(username);
+    const found = await service.getByIdentifier(username);
     if (!found) throw new AppError(404, 'Username or email not registered');
     if (found.deleted_at)
       throw new AppError(403, 'Your account was deleted, contact admin');
@@ -151,13 +151,16 @@ async function emailVerify(req, res, next) {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
 
-    const user = await userByToken('EMAIL_VERIFY', token);
+    const user = await service.getByToken({
+      type: 'EMAIL_VERIFY',
+      token
+    });
     if (!user) throw new AppError(404, 'Invalid verification token');
     if (user.used_at) throw new AppError(400, 'Your token already been used');
     if (new Date(user.expired_at) < new Date())
       throw new AppError(410, 'Verification token has expired');
 
-    const result = await updateUserVerify(user.user_id);
+    const result = await service.verifyEmail(user.user_id);
     success({
       message: 'Your email has verified',
       data: { payload: result },
@@ -182,7 +185,7 @@ async function emailVerify(req, res, next) {
 async function me(req, res, next) {
   try {
     const { id } = req.user;
-    const user = await userById(id);
+    const user = await service.getById({ userId: id });
     if (!user) throw new AppError(404, 'Username not found');
     if (user.deleted_at)
       throw new AppError(403, 'Your account was deleted, contact admin');
@@ -213,7 +216,7 @@ async function token(req, res, next) {
   try {
     const { id } = req.user;
     const { refreshToken } = req.body;
-    const user = await userById(id);
+    const user = await service.getById({ userId: id });
     if (!user) throw new AppError(404, 'User not found');
     if (user.deleted_at)
       throw new AppError(403, 'Your account was deleted, contact admin');
@@ -255,11 +258,15 @@ async function token(req, res, next) {
 async function logout(req, res, next) {
   try {
     const { id } = req.user;
-    const user = await userById(id);
+    const user = await service.getById({ userId: id });
     if (!user) throw new AppError(404, 'User not found');
     if (!user.token) throw new AppError(500, 'Please login first');
 
-    const ended = await createOrUpdateToken(id, null, 'REFRESH_TOKEN');
+    const ended = await service.createToken({
+      id,
+      token: null,
+      type: 'REFRESH_TOKEN'
+    });
     success({
       message: `User ${ended.user_id} has logout`,
       data: { payload: ended },
@@ -283,12 +290,12 @@ async function logout(req, res, next) {
  */
 async function forgotPass(req, res, next) {
   try {
-    const user = await userByIdentifier(req.body.username);
-    const { id, username, email, role } = user;
+    const user = await service.getByIdentifier(req.body.username);
     if (!user) throw new AppError(404, 'Your account not found');
     if (user.deleted_at)
       throw new AppError(404, 'Your account was deleted, contact admin');
 
+    const { id, username, email, role } = user;
     const payload = {
       id,
       username,
@@ -296,7 +303,11 @@ async function forgotPass(req, res, next) {
       generated_at: dateNow('iso')
     };
     const token = generateCrypto('password');
-    const data = createOrUpdateToken(user.id, token, 'PASSWORD_RESET');
+    const data = service.createToken({
+      id: user.id,
+      token,
+      type: 'PASSWORD_RESET'
+    });
 
     success({
       message: 'Check your email',

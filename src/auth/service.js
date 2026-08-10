@@ -1,10 +1,27 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const model = require('./model');
 const pool = require('../config/pool');
 
 async function getById(options) {
   try {
+    return await model.userById(options);
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getByIdentifier(options) {
+  try {
     return await model.userByIdentifier(options);
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getByToken(options) {
+  try {
+    return await model.userByToken(options);
   } catch (error) {
     throw error;
   }
@@ -81,9 +98,34 @@ async function createToken(options) {
   }
 }
 
+async function verifyEmail(userId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const user = await model.emailVerify(client, userId);
+    await model.updateEmailToken(client, userId);
+
+    await client.query('COMMIT');
+    return {
+      username: user.username,
+      role_id: user.role_id,
+      email_verified_at: user.email_verified_at
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    await client.release();
+  }
+}
+
 module.exports = {
   getByNameOrEmail,
   getById,
+  getByIdentifier,
+  getByToken,
   register,
-  createToken
+  createToken,
+  verifyEmail
 };

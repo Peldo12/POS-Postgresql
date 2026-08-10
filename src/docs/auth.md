@@ -8,4 +8,11 @@
 - [x] Not Verify
 - [x] Pass Invalid
 - [x] Login
+- [x] Emai Verify
+- [x] Token Used
+- [x] Me
+- [x] Access Token
+- [x] Refresh Access
+- [x] Logout
+- [x] Need Login
 - [ ]
