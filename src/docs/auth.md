@@ -15,4 +15,5 @@
 - [x] Refresh Access
 - [x] Logout
 - [x] Need Login
-- [ ]
+- [x] Forgot Pass
+- [x] Reset Pass

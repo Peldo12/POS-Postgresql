@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # Layanan 1: Database PostgreSQL
+  database:
+    image: postgres:18-alpine
+    container_name: pos_postges
+    environment:
+      POSTGRES_USER: u0_a616
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: kholidb
+    ports:
+      - "5432:5432"
+
+  # Layanan 2: Aplikasi Backend Node.js Kamu
+  backend:
+    build: .
+    container_name: pos_backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+    env_file:
+    - .env
+    restart: always

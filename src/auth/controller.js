@@ -1,20 +1,9 @@
 const bcrypt = require('bcryptjs');
 
+const service = require('./service');
 const generateToken = require('../common/helpers/token');
 const generateCrypto = require('../common/helpers/crypto');
 const dateNow = require('../common/helpers/date');
-
-const service = require('./service');
-const { userById } = require('../user/model');
-const {
-  userByUsernameOrEmail,
-  userByIdentifier,
-  userByToken,
-  registerUser,
-  createOrUpdateToken,
-  updateUserVerify,
-  updateUserPass
-} = require('./model');
 const success = require('../common/helpers/response');
 const sendEmail = require('../common/helpers/email');
 const AppError = require('../common/utils/AppError');
@@ -29,7 +18,7 @@ async function register(req, res, next) {
     const { username, email } = req.body;
     const user = await service.getByNameOrEmail({
       username,
-      email
+      email,
     });
 
     if (user) {
@@ -48,25 +37,25 @@ async function register(req, res, next) {
     const payload = {
       id: result.id,
       username: result.username,
-      role: result.role_id
+      role: result.role_id,
     };
 
     success({
       statusCode: 201,
       message: `User ${username} was registered`,
       data: { payload },
-      res
+      res,
     });
 
     sendEmail({
       email,
       subject: 'Verify your email',
-      html: `${process.env.EMAIL_VERIFY_URL}${result.emailToken}`
+      html: `${process.env.EMAIL_VERIFY_URL}${result.emailToken}`,
     })
       .then(() => {
         req.logger.info('Success send email token', {
           user: username,
-          sended: dateNow('iso')
+          sended: dateNow('iso'),
         });
       })
       .catch(err => {
@@ -77,7 +66,7 @@ async function register(req, res, next) {
       `User ${username} was added, email was sended to ${email}`,
       {
         user: username,
-        created: dateNow('iso')
+        created: dateNow('iso'),
       }
     );
 
@@ -111,29 +100,29 @@ async function login(req, res, next) {
       email_verified_at: found.email_verified_at,
       role: found.role,
       login_at: dateNow(),
-      generated_at: dateNow('iso')
+      generated_at: dateNow('iso'),
     };
     const accessToken = generateToken({ payload });
     const refreshToken = generateToken({
       payload,
-      type: 'refresh'
+      type: 'refresh',
     });
 
     await service.createToken({
       id: found.id,
       token: refreshToken,
-      type: 'REFRESH_TOKEN'
+      type: 'REFRESH_TOKEN',
     });
 
     success({
       message: `Login successful, welcome ${found.username}`,
       data: { accessToken, refreshToken },
-      res
+      res,
     });
 
     req.logger.info(`User ${username} was login`, {
       user: username,
-      login_at: dateNow('iso')
+      login_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on login', { error: e });
@@ -153,7 +142,7 @@ async function emailVerify(req, res, next) {
 
     const user = await service.getByToken({
       type: 'EMAIL_VERIFY',
-      token
+      token,
     });
     if (!user) throw new AppError(404, 'Invalid verification token');
     if (user.used_at) throw new AppError(400, 'Your token already been used');
@@ -164,12 +153,12 @@ async function emailVerify(req, res, next) {
     success({
       message: 'Your email has verified',
       data: { payload: result },
-      res
+      res,
     });
 
     req.logger.info(`User ${user.username} email was verified`, {
       user: user.username,
-      verified_at: dateNow('iso')
+      verified_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on verify email', { error: e });
@@ -194,12 +183,12 @@ async function me(req, res, next) {
     success({
       message: `Onboard is ${username}`,
       data: { payload: { username, role }, refreshToken: token },
-      res
+      res,
     });
 
     req.logger.info(`user ${username} request his/him profile`, {
       user: username,
-      requested_at: dateNow('iso')
+      requested_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on profile request', { error: e });
@@ -230,19 +219,19 @@ async function token(req, res, next) {
       email_verified_at: user.email_verified_at,
       role: user.role,
       login_at: user.last_login_at,
-      generated_at: dateNow('iso')
+      generated_at: dateNow('iso'),
     };
     const accessToken = generateToken({ payload });
 
     success({
       message: 'New access token generated',
       data: { accessToken },
-      res
+      res,
     });
 
     req.logger.info(`user ${user.username} request new accessToken`, {
       user: user.username,
-      requested_at: dateNow('iso')
+      requested_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on token request', { error: e });
@@ -265,17 +254,17 @@ async function logout(req, res, next) {
     const ended = await service.createToken({
       id,
       token: null,
-      type: 'REFRESH_TOKEN'
+      type: 'REFRESH_TOKEN',
     });
     success({
       message: `User ${ended.user_id} has logout`,
       data: { payload: ended },
-      res
+      res,
     });
 
     req.logger.info(`user ${ended.user_id} has logout`, {
       user: ended.username,
-      logout_at: dateNow('iso')
+      logout_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on logout', { error: e });
@@ -291,7 +280,7 @@ async function logout(req, res, next) {
 async function forgotPass(req, res, next) {
   try {
     const user = await service.getByIdentifier(req.body.username);
-    if (!user) throw new AppError(404, 'Your account not found');
+    if (!user) throw new AppError(404, 'Requested account not registered');
     if (user.deleted_at)
       throw new AppError(404, 'Your account was deleted, contact admin');
 
@@ -300,30 +289,30 @@ async function forgotPass(req, res, next) {
       id,
       username,
       role,
-      generated_at: dateNow('iso')
+      generated_at: dateNow('iso'),
     };
     const token = generateCrypto('password');
     const data = service.createToken({
       id: user.id,
       token,
-      type: 'PASSWORD_RESET'
+      type: 'PASSWORD_RESET',
     });
 
     success({
       message: 'Check your email',
       data: { payload },
-      res
+      res,
     });
 
     sendEmail({
       email: email,
       subject: 'Reset your password',
-      html: `${process.env.PASS_RESET_URL}${token}`
+      html: `${process.env.RESET_URL}${token}`,
     })
       .then(() => {
         req.logger.info('Success send reset password token', {
           user: username,
-          sended: dateNow('iso')
+          sended: dateNow('iso'),
         });
       })
       .catch(err => {
@@ -332,7 +321,7 @@ async function forgotPass(req, res, next) {
 
     req.logger.info(`User ${username} was request to reset password`, {
       user: username,
-      requested_at: dateNow('iso')
+      requested_at: dateNow('iso'),
     });
   } catch (error) {
     req.logger.error('Failed on forgot pass', { error });
@@ -349,21 +338,27 @@ async function resetPass(req, res, next) {
   try {
     const { token } = req.query;
     const { repeatPassword } = req.body;
-    const user = await userByToken('PASSWORD_RESET', token);
+    const user = await service.getByToken({
+      type: 'PASSWORD_RESET',
+      token,
+    });
     if (!user) throw new AppError(404, 'Invalid reset password token');
     if (user.used_at) throw new AppError(400, 'Your token already been used');
     if (new Date(user.expired_at) < new Date())
       throw new AppError(410, 'Verification token has expired');
 
-    const data = await updateUserPass(user.user_id, repeatPassword);
+    const data = await service.resetPass({
+      userId: user.user_id,
+      password: repeatPassword,
+    });
     success({
       message: 'Your password was changed',
       data: { payload: data },
-      res
+      res,
     });
     req.logger.info(`User ${data.username} has changed her/him password`, {
       user: data.username,
-      changed_at: dateNow('iso')
+      changed_at: dateNow('iso'),
     });
   } catch (error) {
     req.logger.error('Failed on reset pass', { error });
@@ -379,5 +374,5 @@ module.exports = {
   token,
   logout,
   forgotPass,
-  resetPass
+  resetPass,
 };

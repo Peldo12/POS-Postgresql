@@ -49,12 +49,11 @@ async function register(options) {
       hashed
     });
     const emailToken = crypto.randomBytes(32).toString('hex');
-    const type = 'EMAIL_VERIFY';
-    await model.createEmailToken({
+    await model.createToken({
       client,
-      userId: user.id,
+      id: user.id,
       emailToken,
-      type
+      type: 'EMAIL_VERIFY'
     });
 
     await client.query('COMMIT');
@@ -104,7 +103,11 @@ async function verifyEmail(userId) {
     await client.query('BEGIN');
 
     const user = await model.emailVerify(client, userId);
-    await model.updateEmailToken(client, userId);
+    await model.updateTokenUse({
+      client,
+      userId,
+      type: 'EMAIL_VERIFY'
+    });
 
     await client.query('COMMIT');
     return {
@@ -120,6 +123,34 @@ async function verifyEmail(userId) {
   }
 }
 
+async function resetPass(options) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { userId, password } = options;
+    const hashed = await bcrypt.hash(password, 10);
+
+    const user = await model.updatePass({
+      client,
+      userId,
+      hashed
+    });
+    await model.updateTokenUse({
+      client,
+      userId,
+      type: 'PASSWORD_RESET'
+    });
+
+    await client.query('COMMIT');
+    return user;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    await client.release();
+  }
+}
+
 module.exports = {
   getByNameOrEmail,
   getById,
@@ -127,5 +158,6 @@ module.exports = {
   getByToken,
   register,
   createToken,
-  verifyEmail
+  verifyEmail,
+  resetPass
 };

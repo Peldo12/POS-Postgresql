@@ -18,7 +18,7 @@ async function createTable() {
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS users(
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(64) NOT NULL UNIQUE,
     email VARCHAR(64) NOT NULL UNIQUE,
     email_verified_at TIMESTAMP DEFAULT NULL,
@@ -45,7 +45,7 @@ async function createTable() {
     await pool.query(`
     CREATE TABLE IF NOT EXISTS user_tokens(
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     token TEXT UNIQUE,
     type VARCHAR(30) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -99,9 +99,9 @@ async function createTable() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    deleted_by UUID REFERENCES users(id) ON DELETE SET NULL
     
     )`);
 
@@ -109,10 +109,19 @@ async function createTable() {
     CREATE TABLE IF NOT EXISTS product_log (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(32) NOT NULL CHECK (
-      action IN('CREATE', 'UPDATE', 'REMOVE', 'RESTORE')
+      action IN(
+      'CREATE',
+      'UPDATE',
+      'REMOVE',
+      'RESTORE',
+      'STOCK_IN', 
+      'STOCK_OUT'
+      )
     ),
+    refer_type VARCHAR(32),
+    refer_id INTEGER,
     old_data JSONB DEFAULT NULL,
     new_data JSONB DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -121,7 +130,7 @@ async function createTable() {
     await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role TEXT REFERENCES roles(name) ON DELETE CASCADE,
     total NUMERIC NOT NULL,
     method VARCHAR(32) DEFAULT 'cash',

@@ -1,19 +1,20 @@
-const model = require("./model");
-const pool = require("../config/pool");
+const model = require('./model');
+const productLog = require('../product/log');
+const pool = require('../config/pool');
 
 async function orders(filters) {
   try {
-    return await model.orderJoin(filters)
+    return await model.orderJoin(filters);
   } catch (error) {
-    throw error
+    throw error;
   }
 }
 
 async function byId(id) {
   try {
-    return await model.orderById(id)
+    return await model.orderById(id);
   } catch (error) {
-    throw error
+    throw error;
   }
 }
 
@@ -24,7 +25,7 @@ async function create(options) {
     const result = [];
     let sumTotal = 0;
 
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const order = await model.create({
       client,
@@ -36,7 +37,7 @@ async function create(options) {
       const { id, quantity, sell } = product;
       const item = await model.getSell(client, id);
 
-      if (item.rowCount === 0) throw new AppError(404, "Product not found");
+      if (item.rowCount === 0) throw new AppError(404, 'Product not found');
       if (item.rows[0].sell !== sell)
         throw new AppError(400, `Invalid price product ${id}`);
       const realPrice = item.rows[0].sell;
@@ -49,6 +50,14 @@ async function create(options) {
         quantity,
         realPrice,
       });
+      await productLog.create({
+        client,
+        action: 'STOCK_OUT',
+        userId: user.id,
+        data: product,
+        refId: order.id,
+        refType: 'ORDER',
+      });
 
       const updateProduct = await model.updateStock({
         client,
@@ -58,13 +67,13 @@ async function create(options) {
       if (updateProduct.rowCount === 0)
         throw new AppError(400, `Insufficient stock for product ${id}`);
 
-      result.push({ status: "success", product: id });
+      result.push({ status: 'success', product: id });
     }
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();

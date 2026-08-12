@@ -27,18 +27,20 @@ async function createProduct(options) {
 
     const result = await model.create({
       client,
-      product
+      product,
     });
     await info.create({
       client,
       productId: result[0].id,
-      userId: user.id
+      userId: user.id,
     });
     await log.create({
       client,
-      action: 'UPDATE',
+      action: 'CREATE',
       userId: user.id,
-      data: { ...product, id: result[0].id }
+      data: { ...product, id: result[0].id },
+      refId: result[0].id,
+      refType: 'PRODUCT',
     });
 
     await client.query('COMMIT');
@@ -59,18 +61,20 @@ async function updateProduct(options) {
 
     const result = await model.update({
       client,
-      product
+      product,
     });
     await info.create({
       client,
       productId: product.id,
-      userId: user.id
+      userId: user.id,
     });
     await log.create({
       client,
       action: 'UPDATE',
       userId: user.id,
-      data: product
+      data: product,
+      refId: product.id,
+      refType: 'PRODUCT',
     });
 
     await client.query('COMMIT');
@@ -92,7 +96,7 @@ async function removeOrRestoreProduct(options) {
 
     const result = await model.removeOrRestore({
       client,
-      ...options
+      ...options,
     });
     const old = await model.productByIdentifier({ id });
 
@@ -100,7 +104,9 @@ async function removeOrRestoreProduct(options) {
       client,
       userId: user.id,
       action,
-      data: old
+      data: old,
+      refId: result.id,
+      refType: 'PRODUCT',
     });
 
     await client.query('COMMIT');
@@ -133,5 +139,5 @@ module.exports = {
   createProduct,
   updateProduct,
   removeOrRestoreProduct,
-  permanentDelete
+  permanentDelete,
 };

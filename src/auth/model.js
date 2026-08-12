@@ -41,19 +41,6 @@ async function create(options) {
   return rows[0];
 }
 
-async function createEmailToken(options) {
-  const { client, userId, emailToken, type } = options;
-  await client.query(
-    `
-      INSERT INTO user_tokens
-      (user_id, token, type, expired_at)
-      VALUES
-      ($1, $2, $3, $4)
-    `,
-    [userId, emailToken, type, tokenExpired[type]]
-  );
-}
-
 async function userByToken(options) {
   const { type, token } = options;
   const { rows } = await pool.query(
@@ -161,7 +148,8 @@ async function emailVerify(client, userId) {
   return rows[0];
 }
 
-async function updateEmailToken(client, userId) {
+async function updateTokenUse(options) {
+  const { client, userId, type } = options;
   await client.query(
     `
     UPDATE user_tokens 
@@ -174,59 +162,33 @@ async function updateEmailToken(client, userId) {
       type = $2 
     AND
       used_at IS NULL`,
-    [userId, 'EMAIL_VERIFY']
+    [userId, type]
   );
 }
 
-async function updateUserPass(id, password) {
-  const client = await pool.connect();
-  try {
-    const hashed = await bcrypt.hash(password, 10);
-    await client.query('BEGIN');
-    const { rows } = await client.query(
-      `
+async function updatePass(options) {
+  const { client, userId, hashed } = options;
+  const { rows } = await client.query(
+    `
       UPDATE users 
       SET password = $1 
       WHERE id = $2
-      RETURNING id, username, role_id
+      RETURNING username, role_id
     `,
-      [hashed, id]
-    );
-
-    await client.query(
-      `
-      UPDATE user_tokens 
-      SET 
-        used_at = NOW(),
-        expired_at = NOW()
-      WHERE 
-        user_id = $1 
-      AND 
-        type = $2 
-      AND
-        used_at IS NULL`,
-      [rows[0].id, 'PASSWORD_RESET']
-    );
-    await client.query('COMMIT');
-
-    return rows[0];
-  } catch (error) {
-    await client.query('ROLLBACK');
-  } finally {
-    await client.release();
-  }
+    [hashed, userId]
+  );
+  return rows[0];
 }
 
 module.exports = {
   userByUsernameOrEmail,
   create,
-  createEmailToken,
   userByToken,
   userById,
   userByIdentifier,
   updateLogin,
   createToken,
   emailVerify,
-  updateEmailToken,
-  updateUserPass
+  updateTokenUse,
+  updatePass,
 };
