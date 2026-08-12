@@ -1,0 +1,26 @@
+
+services:
+  # Layanan 1: Database PostgreSQL
+  database:
+    image: postgres:15-alpine
+    container_name: pos_postges
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes: 
+      - ./data_postgres:/var/lib/postgresql/data
+
+  # Layanan 2: Aplikasi Backend Node.js
+  backend:
+    build: .
+    container_name: pos_backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+    env_file:
+    - .env
+    restart: always

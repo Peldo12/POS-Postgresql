@@ -1,9 +1,7 @@
 node_modules/
-.env
 logs/
 public/upload/*
 api/node_modules/
 .DS_Store
 *.log
 injection.js
-data_postgres/
