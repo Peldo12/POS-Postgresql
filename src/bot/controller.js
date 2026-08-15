@@ -26,6 +26,7 @@ function text(assist) {
   assist.on(message('text'), async ctx => {
     // optional(explicit) await ctx.telegram.sendMessage(ctx.message.chat.id, )
     if (ctx.text === 'sapa') return await ctx.reply('Am i from conditional?');
+    await ctx.sendChatAction('typing');
 
     const result = await service.answer(ctx.text);
     await ctx.reply(result);
