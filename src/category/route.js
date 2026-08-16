@@ -1,19 +1,22 @@
 const express = require('express')
 const router = express.Router()
 
-const { authenticate } = require('../common/middleware/authentication')
+const {
+  authenticate,
+  limit,
+  validateBody,
+  validateParams,
+  validateQuery,
+  idSchema,
+  authorize,
+} = require("../config/baseConfig");
 
 const { categories, byId, create, update, remove, restore } = require('./controller')
-
-const validateBody = require('../common/middleware/validateBody')
-const validateParams = require('../common/middleware/validateParams')
 const { categorySchema, idSchema } = require('./validator')
 
-const limit = require('../common/middleware/limiter')
 const { transactionLimit } = require('../config/rateLimitConfig')
 const { fiveMin } = require('../config/rateLimitTime')
 
-const authorize = require('../common/middleware/authorize')
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles')
 
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN]
