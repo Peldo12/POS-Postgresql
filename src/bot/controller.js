@@ -74,4 +74,11 @@ function document(assist) {
   });
 }
 
+function image(assist) {
+  assist.on('images', async (ctx) => {
+    ctx.reply('Masuk')
+    console.log(ctx)
+  })
+}
+
 module.exports = { text, start, document };
