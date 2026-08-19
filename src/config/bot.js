@@ -12,5 +12,6 @@ const control = require('../bot/controller');
 control.start(assist);
 control.text(assist);
 control.document(assist);
+control.photo(assist);
 
 module.exports = assist;

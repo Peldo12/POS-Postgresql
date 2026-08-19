@@ -12,7 +12,7 @@ const {
 } = require("../config/baseConfig");
 
 const { categories, byId, create, update, remove, restore } = require('./controller')
-const { categorySchema, idSchema } = require('./validator')
+const { categorySchema } = require('./validator')
 
 const { transactionLimit } = require('../config/rateLimitConfig')
 const { fiveMin } = require('../config/rateLimitTime')
