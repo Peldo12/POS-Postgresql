@@ -1,5 +1,5 @@
-const express = require('express')
-const router = express.Router()
+const express = require('express');
+const router = express.Router();
 
 const {
   authenticate,
@@ -9,60 +9,62 @@ const {
   validateQuery,
   idSchema,
   authorize,
-} = require("../config/baseConfig");
+} = require('../config/baseConfig');
 
-const { categories, byId, create, update, remove, restore } = require('./controller')
-const { categorySchema } = require('./validator')
+const {
+  categories,
+  byId,
+  create,
+  update,
+  remove,
+  restore,
+} = require('./controller');
+const { categorySchema } = require('./validator');
 
-const { transactionLimit } = require('../config/rateLimitConfig')
-const { fiveMin } = require('../config/rateLimitTime')
+const { transactionLimit } = require('../config/rateLimitConfig');
+const { fiveMin } = require('../config/rateLimitTime');
 
-const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles')
+const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
 
-const all = [USER, ADMIN, OWNER, SUPER_ADMIN]
-const strict = [ADMIN, OWNER, SUPER_ADMIN]
+const all = [USER, ADMIN, OWNER, SUPER_ADMIN];
+const strict = [ADMIN, OWNER, SUPER_ADMIN];
 
-router.use(authenticate)
+router.use(authenticate);
 
-router.get("/", authorize(all), categories)
-router.get(
-  "/:id", 
-  authorize(all),
-  validateParams(idSchema),
-  byId
-)
+router.get('/', authorize(all), categories);
+router.get('/:id', authorize(all), validateParams(idSchema), byId);
 
 router.post(
-  "/create",
+  '/create',
   limit(transactionLimit, fiveMin),
-  authorize(strict), 
-  validateBody(categorySchema), 
+  authorize(strict),
+  validateBody(categorySchema),
   create
-)
+);
 
 router.put(
-  "/:id/update", 
+  '/:id/update',
   limit(transactionLimit, fiveMin),
   authorize(strict),
   validateParams(idSchema),
   validateBody(categorySchema),
   update
-)
+);
 
 router.patch(
-  "/:id/remove", 
+  '/:id/remove',
   limit(transactionLimit),
   validateParams(idSchema),
   authorize(strict),
   remove
-)
+);
 
 router.patch(
-  "/:id/restore", 
+  '/:id/restore',
   limit(transactionLimit),
   validateParams(idSchema),
   authorize(strict),
   restore
-)
+);
 
-module.exports = router
+module.exports = router;

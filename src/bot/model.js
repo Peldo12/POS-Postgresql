@@ -26,4 +26,13 @@ async function byId(id) {
   return rows[0];
 }
 
-module.exports = { create, byId };
+async function remove(id) {
+  await pool.query(
+    `
+  DELETE FROM cloud_files WHERE file_id = $1
+  `,
+    [id]
+  );
+}
+
+module.exports = { create, byId, remove };

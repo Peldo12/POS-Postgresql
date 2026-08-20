@@ -69,5 +69,5 @@ module.exports = {
   getCategoryIdentifier,
   createCategory,
   updateCategory,
-  removeOrRestoreCategory
+  removeOrRestoreCategory,
 };

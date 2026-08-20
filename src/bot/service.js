@@ -1,5 +1,5 @@
-const model = require("./model");
-const agent = require("../config/agent");
+const model = require('./model');
+const agent = require('../config/agent');
 
 async function create(options) {
   try {
@@ -20,7 +20,7 @@ async function byId(id) {
 
 async function answer(prompt) {
   try {
-    const result = await agent(prompt || "");
+    const result = await agent(prompt || '');
 
     return await result;
   } catch (error) {
@@ -28,4 +28,14 @@ async function answer(prompt) {
   }
 }
 
-module.exports = { create, byId, answer };
+async function reset(options) {
+  const { ctx, cloudId, chatId } = options;
+  try {
+    await ctx.telegram.deleteMessage(process.env.CHANNEL_ID, chatId);
+    await model.remove(cloudId);
+  } catch (error) {
+    throw error;
+  }
+}
+
+module.exports = { create, byId, answer, reset };
