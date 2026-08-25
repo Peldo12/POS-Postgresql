@@ -8,7 +8,7 @@ function start(assist) {
       try {
         const result = await service.byId(payload);
         if (!result) return ctx.reply('File not found');
-        if (result.uploaded_by !== ctx.from.id)
+        if (+result.uploaded_by !== ctx.from.id)
           return ctx.reply('Sorry, you do not belong to this document');
 
         ctx.reply('Wait a second ...');
