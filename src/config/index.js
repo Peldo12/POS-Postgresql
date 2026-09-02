@@ -1,6 +1,6 @@
 const agent = require('./agent');
 const bot = require('./bot');
-const InitDB = require('./InitDB');
+const initDB = require('./initDB');
 const joi = require('./joi');
 const pool = require('./pool');
 const wa = require('./wa');
@@ -8,7 +8,7 @@ const wa = require('./wa');
 module.exports = {
   agent,
   bot,
-  InitDB,
+  initDB,
   joi,
   pool,
   wa,

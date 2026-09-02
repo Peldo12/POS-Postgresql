@@ -1,4 +1,4 @@
-const pool = require('../config/pool');
+const { pool } = require('../config/index');
 
 async function create(options) {
   const { fileId, fileName, type, fileSize, userId } = options;
