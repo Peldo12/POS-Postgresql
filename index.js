@@ -1,4 +1,6 @@
-require("dotenv").config({ quiet: true });
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 const app = require("./src/app");
 const bot = require("./src/config/bot");
 const port = process.env.PORT || 3040;
@@ -8,5 +10,11 @@ app.listen(port, () => {
   bot.launch();
 });
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+const stopBot = async (signal) => {
+  console.log(`Menerima ${signal}, menghentikan bot...`);
+  await bot.stop(signal);
+  process.exit(0);
+};
+
+process.once("SIGINT", () => stopBot("SIGINT"));
+process.once("SIGTERM", () => stopBot("SIGTERM"));
