@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes: 
-      - ./data_postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -25,7 +25,10 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     env_file:
     - .env
     restart: always
+volumes:
+  postgres_data:
