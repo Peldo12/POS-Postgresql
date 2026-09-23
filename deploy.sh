@@ -3,7 +3,7 @@
 set -e
 
 echo "==> Masuk ke folder project"
-cd /opt/Test-NGINX
+cd /opt/POS-Postgresql
 
 echo "==> Mengambil update dari GitHub"
 git pull origin main
