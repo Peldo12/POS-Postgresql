@@ -3,7 +3,7 @@ FROM node:26-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci && apk add --no-cache curl
 
 COPY . .
 
