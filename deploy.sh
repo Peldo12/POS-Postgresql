@@ -2,26 +2,63 @@
 
 set -e
 
-echo "==> Masuk ke folder project"
+echo "==> Open folder project"
 cd /opt/POS-Postgresql
 
-echo "==> Mengambil update dari GitHub"
-git pull origin main
+# echo "==> Mengambil update dari GitHub"
+# git pull origin main
 
-echo "==> Install dependency"
-npm ci
+# echo "==> Install dependency"
+# npm ci
 
-echo "==> Restart service"
-sudo systemctl restart pos-api
+# echo "==> Restart service"
+# sudo systemctl restart pos-api
 
-echo "==> Tunggu API siap"
+echo "==> File checking !!!"
+
+if [[ ! -f package.json ]]
+then
+  echo 'package.json not found'
+  exit 1
+fi
+
+if [[ ! -f .env ]]
+then
+  echo '.env not found'
+  exit 1
+fi
+
+if [[ ! -d node_modules ]]
+then
+  echo 'node_modules not found'
+  echo 'running npm ci'
+  npm ci
+fi
+
+echo "==> checking Dockerfile !!!"
+if [[ ! -f Dockerfile ]]
+then
+  echo "Dockerfile not found"
+  exit 1
+fi
+
+if [[ ! -f docker-compose.yaml ]]
+then
+  echo "docker-compose.yaml not found"
+  exit 1
+fi
+
+echo "==> Compose up"
+docker compose up --build -d
+  
+echo "==> Wait API ready"
 until curl -sf http://localhost:3000/api/health > /dev/null
 do
     sleep 1
 done
 
-echo "==> Cek health API"
+echo "==> Check health API"
 curl http://localhost:3000/api/health
 
 echo
-echo "==> Deploy selesai"
+echo "==> Deploy successful"
