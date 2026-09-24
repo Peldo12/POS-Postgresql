@@ -3,32 +3,38 @@ services:
   # Layanan 1: Database PostgreSQL
   database:
     image: postgres:15-alpine
-    container_name: pos_postges
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "5432:5432"
     volumes: 
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pos_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: always
 
   # Layanan 2: Aplikasi Backend Node.js
   backend:
     build: .
-    container_name: pos_backend
+    networks:
+      - pos_network
     ports:
       - "3000:3000"
     depends_on:
       database:
         condition: service_healthy
     env_file:
-    - .env
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: always
 volumes:
   postgres_data:
