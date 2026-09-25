@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 node_modules/
 logs/
 public/upload/*
 api/node_modules/
+=======
+.env
+node_modules/
+logs/
+public/upload/*
+>>>>>>> wip
 .DS_Store
 *.log
 injection.js

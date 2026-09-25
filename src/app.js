@@ -3,7 +3,10 @@ const app = express();
 const logger = require('./common/middleware/logger');
 const cors = require('cors');
 require('./config/initDB')();
+<<<<<<< HEAD
 require('./config/agent')();
+=======
+>>>>>>> wip
 
 app.use(express.json());
 // app.use(express.static("/public/upload"))

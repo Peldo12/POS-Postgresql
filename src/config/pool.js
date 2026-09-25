@@ -3,7 +3,11 @@ const { Pool } = require("pg")
 const dbUser = process.env.DB_USER
 const dbPass = process.env.DB_PASSWORD
 const dbHost = process.env.DB_HOST
+<<<<<<< HEAD
 const dbName = process.env.DB_HOST
+=======
+const dbName = process.env.DB_NAME
+>>>>>>> wip
 
 const pool = new Pool({
   connectionString: `postgresql://${dbUser}:${dbPass}@${dbHost}:5432/${dbName}`,
