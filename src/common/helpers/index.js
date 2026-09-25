@@ -1,5 +1,5 @@
-const generateCrypto = require('./crypto')
+const generateCrypto = require('./crypto');
 
 module.exports = {
   generateCrypto,
-}
+};

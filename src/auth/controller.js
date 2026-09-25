@@ -58,7 +58,7 @@ async function register(req, res, next) {
           sended: dateNow('iso'),
         });
       })
-      .catch(err => {
+      .catch((err) => {
         req.logger.error('Failed send email:', err);
       });
 
@@ -315,7 +315,7 @@ async function forgotPass(req, res, next) {
           sended: dateNow('iso'),
         });
       })
-      .catch(err => {
+      .catch((err) => {
         req.logger.error('Failed send email:', err);
       });
 

@@ -5,8 +5,8 @@ const transporter = nodemailer.createTransport({
   port: +process.env.EMAIL_PORT,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 const sendEmail = async (options) => {
@@ -14,7 +14,7 @@ const sendEmail = async (options) => {
     from: '"POS System" <noreply@pos.com>',
     to: options.email,
     subject: options.subject,
-    html: options.html
+    html: options.html,
   });
 };
 

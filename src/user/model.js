@@ -1,7 +1,7 @@
-const pool = require("../config/pool");
+const pool = require('../config/pool');
 
 async function getUsers(options) {
-  const { deleted = true } = options
+  const { deleted = true } = options;
   let sql = `
   SELECT 
     u.id, 
@@ -14,11 +14,11 @@ async function getUsers(options) {
   LEFT JOIN roles r 
   ON r.id = u.role_id
   WHERE 1=1
-  `
-  if (deleted) sql += ` AND u.deleted_at IS NULL`
-  
-  const { rows } = await pool.query(sql)
-  return rows
+  `;
+  if (deleted) sql += ` AND u.deleted_at IS NULL`;
+
+  const { rows } = await pool.query(sql);
+  return rows;
 }
 
 async function userByIdShort(id) {
@@ -38,10 +38,10 @@ async function userByIdShort(id) {
   `,
     [id]
   );
-  return rows[0]
+  return rows[0];
 }
 
-async function userById(id, type = "REFRESH_TOKEN") {
+async function userById(id, type = 'REFRESH_TOKEN') {
   const { rows } = await pool.query(
     `
   SELECT 
@@ -59,58 +59,56 @@ async function userById(id, type = "REFRESH_TOKEN") {
   ON t.user_id = u.id
   WHERE u.id = $1 AND t.type = $2
   `,
-    [id, type],
+    [id, type]
   );
   return rows[0];
 }
 
 async function updateUser(options) {
-  const {
-    id, username, email, role, deleted
-  } = options
-  const params = []
+  const { id, username, email, role, deleted } = options;
+  const params = [];
   let sql = `
   UPDATE users 
   SET
     updated_at = NOW(), 
-  `
+  `;
   if (username) {
-    params.push(username)
-    sql += `username = $${params.length},`
+    params.push(username);
+    sql += `username = $${params.length},`;
   }
-  
+
   if (email) {
-    params.push(email)
+    params.push(email);
     sql += `
       email = $${params.length},
       email_verified_at = NULL,
-      `
+      `;
   }
-  
+
   if (role) {
-    params.push(role)
-    sql += `role_id = $${params.length},`
+    params.push(role);
+    sql += `role_id = $${params.length},`;
   }
-  
+
   if (deleted) {
-    params.push(deleted)
-    sql += `deleted_at = $${params.length},`
+    params.push(deleted);
+    sql += `deleted_at = $${params.length},`;
   }
 
-  params.push(id)
-  sql += `WHERE id = $${params.length}`
+  params.push(id);
+  sql += `WHERE id = $${params.length}`;
 
-  const {rows} = await pool.query(sql, params)
+  const { rows } = await pool.query(sql, params);
   console.log({
     sql,
-    params
-  })
-  return rows[0]
+    params,
+  });
+  return rows[0];
 }
 
 module.exports = {
   getUsers,
   userByIdShort,
   userById,
-  updateUser
+  updateUser,
 };

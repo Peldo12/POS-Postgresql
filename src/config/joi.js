@@ -1,4 +1,4 @@
-const Joi = require('joi')
+const Joi = require('joi');
 
 const joi = Joi.defaults((schema) => {
   return schema.options({
@@ -13,14 +13,14 @@ const joi = Joi.defaults((schema) => {
       'number.integer': '{#label} must an integer',
       'number.min': '{#label} minimun {#limit}',
       'number.max': '{#label} maximum {#limit}',
-      'any.required': '{#label} is required'
+      'any.required': '{#label} is required',
     },
-    errors: { 
-      wrap: { label: false } 
-    }
-  })
-})
+    errors: {
+      wrap: { label: false },
+    },
+  });
+});
 
 // custom 'any.only' / Joi.string().valid("L", "P")
 
-module.exports = joi
+module.exports = joi;

@@ -46,14 +46,14 @@ async function register(options) {
       client,
       username,
       email,
-      hashed
+      hashed,
     });
     const emailToken = crypto.randomBytes(32).toString('hex');
     await model.createToken({
       client,
       id: user.id,
       emailToken,
-      type: 'EMAIL_VERIFY'
+      type: 'EMAIL_VERIFY',
     });
 
     await client.query('COMMIT');
@@ -61,7 +61,7 @@ async function register(options) {
       id: user.id,
       username: user.username,
       role_id: user.role_id,
-      emailToken
+      emailToken,
     };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -84,7 +84,7 @@ async function createToken(options) {
       client,
       id,
       token,
-      type
+      type,
     });
 
     await client.query('COMMIT');
@@ -106,14 +106,14 @@ async function verifyEmail(userId) {
     await model.updateTokenUse({
       client,
       userId,
-      type: 'EMAIL_VERIFY'
+      type: 'EMAIL_VERIFY',
     });
 
     await client.query('COMMIT');
     return {
       username: user.username,
       role_id: user.role_id,
-      email_verified_at: user.email_verified_at
+      email_verified_at: user.email_verified_at,
     };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -133,12 +133,12 @@ async function resetPass(options) {
     const user = await model.updatePass({
       client,
       userId,
-      hashed
+      hashed,
     });
     await model.updateTokenUse({
       client,
       userId,
-      type: 'PASSWORD_RESET'
+      type: 'PASSWORD_RESET',
     });
 
     await client.query('COMMIT');
@@ -159,5 +159,5 @@ module.exports = {
   register,
   createToken,
   verifyEmail,
-  resetPass
+  resetPass,
 };

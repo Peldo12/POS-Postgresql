@@ -39,7 +39,7 @@ async function create(options) {
     stock,
     minimum_stock,
     weight,
-    image
+    image,
   } = product;
 
   const { rows } = await client.query(
@@ -61,7 +61,7 @@ async function create(options) {
       stock,
       minimum_stock,
       weight,
-      image
+      image,
     ]
   );
 
@@ -81,7 +81,7 @@ async function update(options) {
     minimum_stock,
     weight,
     image,
-    id
+    id,
   } = product;
 
   const { rows } = await client.query(
@@ -106,7 +106,7 @@ async function update(options) {
       minimum_stock,
       weight,
       image,
-      id
+      id,
     ]
   );
   return rows;
@@ -185,7 +185,7 @@ async function productJoin(filters) {
     minPrice,
     maxPrice,
     sort = 'id',
-    orderBy = 'ASC'
+    orderBy = 'ASC',
   } = filters;
 
   const offset = (page - 1) * limit;
@@ -229,7 +229,7 @@ async function productJoin(filters) {
 
   const [countResult, dataResult] = await Promise.all([
     pool.query(countSql, params.slice(0, params.length - 2)),
-    pool.query(sql, params)
+    pool.query(sql, params),
   ]);
 
   return {
@@ -237,8 +237,8 @@ async function productJoin(filters) {
     pagination: {
       page: +page,
       limit: +limit,
-      total: +countResult.rows[0].count
-    }
+      total: +countResult.rows[0].count,
+    },
   };
 }
 
@@ -264,15 +264,15 @@ async function statsProduct() {
       WHERE 
         pi.deleted_at IS NULL 
         AND p.stock <= p.minimum_stock
-    `)
+    `),
   ]);
 
   return {
     stats: {
       products: +product.rows[0].count,
       categories: +categories.rows[0].count,
-      low: +low.rows[0].count
-    }
+      low: +low.rows[0].count,
+    },
   };
 }
 
@@ -284,5 +284,5 @@ module.exports = {
   removeOrRestore,
   permanentRemoveProduct,
   productJoin,
-  statsProduct
+  statsProduct,
 };

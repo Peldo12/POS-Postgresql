@@ -1,4 +1,4 @@
-const AppError = require("../common/utils/AppError");
+const AppError = require('../common/utils/AppError');
 
 async function create(options) {
   const { client, user, payment } = options;
@@ -13,7 +13,7 @@ async function create(options) {
       ($1, $2, $3, $4)
     RETURNING id
     `,
-    [id, role, total, method],
+    [id, role, total, method]
   );
   return rows[0];
 }
@@ -25,7 +25,7 @@ async function getSell(client, id) {
     FROM products 
     WHERE id = $1
     `,
-    [id],
+    [id]
   );
 }
 
@@ -42,7 +42,7 @@ async function detail(options) {
     VALUES
       ($1, $2, $3, $4)
     `,
-    [orderId, productId, quantity, realPrice],
+    [orderId, productId, quantity, realPrice]
   );
 }
 
@@ -54,7 +54,7 @@ async function updateStock(options) {
     SET stock = stock - $1
     WHERE id = $2 AND stock >= $1
     `,
-    [quantity, id],
+    [quantity, id]
   );
 }
 
@@ -64,13 +64,13 @@ async function orderJoin(filters) {
     method,
     page = 1,
     limit = 10,
-    sort = "id",
-    orderBy = "ASC",
+    sort = 'id',
+    orderBy = 'ASC',
   } = filters;
 
   const offset = (page - 1) * limit;
 
-  let whereClause = "WHERE o.deleted_at IS NULL";
+  let whereClause = 'WHERE o.deleted_at IS NULL';
   const params = [];
 
   if (productId) {
@@ -97,11 +97,11 @@ async function orderJoin(filters) {
   ${whereClause}
   GROUP BY o.id
   `;
-  const allowSortBy = ["id", "user_id", "role", "method", "total"];
+  const allowSortBy = ['id', 'user_id', 'role', 'method', 'total'];
   if (!allowSortBy.includes(sort))
-    throw new AppError(400, "Invalid sort column");
+    throw new AppError(400, 'Invalid sort column');
 
-  const direction = orderBy.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
   orderSql += ` ORDER BY o.${sort} ${direction}`;
 
   params.push(limit, offset);
@@ -138,7 +138,7 @@ async function orderById(id) {
   WHERE o.id = $1
   GROUP BY o.id
   `,
-    [id],
+    [id]
   );
   return rows;
 }

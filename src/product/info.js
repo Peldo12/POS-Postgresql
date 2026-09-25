@@ -13,7 +13,7 @@ async function create(options) {
       updated_at = NOW(),
       updated_by = EXCLUDED.updated_by
   `,
-    [productId, userId || "Anonymous"],
+    [productId, userId || 'Anonymous']
   );
 }
 
