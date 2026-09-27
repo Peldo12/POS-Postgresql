@@ -52,7 +52,7 @@ async function register(options) {
     await model.createToken({
       client,
       id: user.id,
-      emailToken,
+      token: emailToken,
       type: 'EMAIL_VERIFY',
     });
 
