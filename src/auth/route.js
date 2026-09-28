@@ -5,6 +5,7 @@ const {
   register,
   login,
   emailVerify,
+  resendEmailVerify,
   me,
   token,
   logout,
@@ -38,6 +39,13 @@ router.post(
 );
 
 router.get('/verify', limit(authLimit), emailVerify);
+
+router.post(
+  '/re-verify',
+  limit(authLimit),
+  validateBody(loginSchema),
+  resendEmailVerify
+);
 
 router.post(
   '/login',

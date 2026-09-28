@@ -167,6 +167,60 @@ async function emailVerify(req, res, next) {
 }
 
 /**
+ * @desc resend verify email user
+ * @route PUT /api/auth/verify?token=
+ * @access registered user
+ */
+async function resendEmailVerify(req, res, next) {
+  try {
+    const { username, password } = req.body;
+    const found = await service.getByIdentifier(username);
+    if (!found) throw new AppError(404, 'Username or email not registered');
+    if (found.deleted_at)
+      throw new AppError(403, 'Your account was deleted, contact admin');
+    if (found.email_verified_at)
+      throw new AppError(401, 'Your email already verified');
+
+    const match = await bcrypt.compare(password, found.password);
+    if (!match) throw new AppError(401, 'Invalid Credentials');
+
+    const result = await service.createToken({
+      id: found.id,
+      token: generateCrypto('email'),
+      type: 'EMAIL_VERIFY',
+    });
+
+    success({
+      message: 'Verification email has resend',
+      res,
+    });
+
+    sendEmail({
+      email: found.email,
+      subject: 'Verify your email',
+      html: `${process.env.EMAIL_VERIFY_URL}${result.token}`,
+    })
+      .then(() => {
+        req.logger.info('Success send email token', {
+          user: username,
+          sended: dateNow('iso'),
+        });
+      })
+      .catch((err) => {
+        req.logger.error('Failed send email:', err);
+      });
+
+    req.logger.info(`User ${found.username} resend verify email `, {
+      user: found.username,
+      sended_at: dateNow('iso'),
+    });
+  } catch (e) {
+    req.logger.error('Failed on resend verify email', { error: e });
+    next(e);
+  }
+}
+
+/**
  * @desc give user refresh token
  * @route GET /api/auth/me
  * @access Atleast verified email
@@ -370,6 +424,7 @@ module.exports = {
   register,
   login,
   emailVerify,
+  resendEmailVerify,
   me,
   token,
   logout,

@@ -4,6 +4,7 @@
 
 - [x] Register
 - [x] Verify Email
+- [x] Resend Verify Email
 - [x] Login
 - [x] Refresh Token
 - [x] Logout
