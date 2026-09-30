@@ -1,17 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const {
-  register,
-  login,
-  emailVerify,
-  resendEmailVerify,
-  me,
-  token,
-  logout,
-  forgotPass,
-  resetPass,
-} = require('./controller');
+const control = require('./controller');
 
 const validateBody = require('../common/middleware/validateBody');
 const {
@@ -35,38 +25,43 @@ router.post(
   '/register',
   limit(authLimit),
   validateBody(createSchema),
-  register
+  control.register
 );
 
-router.get('/verify', limit(authLimit), emailVerify);
+router.get('/verify', limit(authLimit), control.emailVerify);
 
 router.post(
   '/re-verify',
   limit(authLimit),
   validateBody(loginSchema),
-  resendEmailVerify
+  control.resendEmailVerify
 );
 
 router.post(
   '/login',
   validateBody(loginSchema),
   limit(authLimit, fiveMin),
-  login
+  control.login
 );
 
-router.get('/me', authenticate, me);
+router.get('/me', authenticate, control.me);
 
-router.post('/refresh', validateBody(refreshSchema), authBody, token);
+router.post('/refresh', validateBody(refreshSchema), authBody, control.token);
 
-router.post('/logout', authBody, limit(authLimit), logout);
+router.post('/logout', authBody, limit(authLimit), control.logout);
 
 router.post(
   '/forgot',
   validateBody(forgotSchema),
   limit(authLimit),
-  forgotPass
+  control.forgotPass
 );
 
-router.patch('/reset', validateBody(newPass), limit(authLimit), resetPass);
+router.patch(
+  '/reset',
+  validateBody(newPass),
+  limit(authLimit),
+  control.resetPass
+);
 
 module.exports = router;

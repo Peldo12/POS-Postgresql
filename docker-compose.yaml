@@ -1,3 +1,4 @@
+name: pos
 services:
   # Layanan 1: Database PostgreSQL
   database:
@@ -20,10 +21,14 @@ services:
   # Layanan 2: Aplikasi Backend Node.js
   backend:
     build: .
+    image: pos-api:latest
     networks:
       - pos_network
     ports:
       - '3000:3000'
+    volumes:
+      - ./logs:/app/logs
+      - ./public/upload:/app/public/upload
     depends_on:
       database:
         condition: service_healthy
@@ -37,3 +42,5 @@ services:
     restart: always
 volumes:
   postgres_data:
+networks:
+  pos_network:
