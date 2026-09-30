@@ -20,8 +20,7 @@ services:
 
   # Layanan 2: Aplikasi Backend Node.js
   backend:
-    build: .
-    image: pos-api:latest
+    image: holifatulla/pos-api:${APP_VERSION}
     networks:
       - pos_network
     ports:
