@@ -1,20 +1,6 @@
 name: pos
 services:
-  # Layanan 1: Nginx
-  nginx:
-    image: nginx:alpine
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    networks:
-      - pos_network
-    restart: always
-
-  # Layanan 2: Database PostgreSQL
+  # Layanan 1: Database PostgreSQL
   database:
     image: postgres:15-alpine
     environment:
@@ -32,21 +18,24 @@ services:
       retries: 5
     restart: always
 
-  # Layanan 3: Aplikasi Backend Node.js
+  # Layanan 2: Aplikasi Backend Node.js
   backend:
-    image: holifatulla/pos-api:${APP_VERSION}
+    build: .
+    image: pos-api:latest
     networks:
       - pos_network
     ports:
       - '3000:3000'
     volumes:
+      - .:/app
+      - /app/node_modules
       - ./logs:/app/logs
       - ./public/upload:/app/public/upload
     depends_on:
       database:
         condition: service_healthy
     env_file:
-      - .env
+      - .env.dev
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
       interval: 30s
