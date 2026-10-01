@@ -2,63 +2,75 @@
 
 set -e
 
-echo "==> Open folder project"
+log() {
+    echo "==> $1"
+}
+
+log "Open folder project"
 cd /opt/POS-Postgresql
 
-# echo "==> Mengambil update dari GitHub"
-# git pull origin main
+if [[ -z "$1" ]]; then
+  read -p "==> Input version : " NEW_VERSION
+else
+  NEW_VERSION="$1"
+fi
 
-# echo "==> Install dependency"
-# npm ci
-
-# echo "==> Restart service"
-# sudo systemctl restart pos-api
-
-echo "==> File checking !!!"
-
-if [[ ! -f package.json ]]
-then
-  echo 'package.json not found'
+if [[ -z "$NEW_VERSION" ]]; then
+  log "No version given, exit !!"
   exit 1
 fi
 
-if [[ ! -f .env ]]
-then
-  echo '.env not found'
-  exit 1
+if ! OLD_VERSION=$(grep '^APP_VERSION=' .env | cut -d '=' -f2); then
+    log "APP_VERSION not found in .env"
+    exit 1
 fi
 
-if [[ ! -d node_modules ]]
-then
-  echo 'node_modules not found'
-  echo 'running npm ci'
-  npm ci
+set_version() {
+  sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
+}
+
+if ! set_version "$NEW_VERSION"; then
+    log "Failed to update APP_VERSION"
+    exit 1
 fi
 
-echo "==> checking Dockerfile !!!"
-if [[ ! -f Dockerfile ]]
-then
-  echo "Dockerfile not found"
-  exit 1
-fi
-
-if [[ ! -f docker-compose.yaml ]]
-then
-  echo "docker-compose.yaml not found"
-  exit 1
-fi
-
-echo "==> Compose up"
-docker compose up --build -d
+log "Target version: $NEW_VERSION"
+log "Compose ... "
+log "Pull image ... "
+if ! docker compose pull ; then
+  log "Pull failed !!"
+  log "Restore env ..."
   
-echo "==> Wait API ready"
-until curl -sf http://localhost:3000/api/health > /dev/null
+  if ! set_version "$OLD_VERSION"; then
+    log "Failed to restore APP_VERSION"
+  fi
+  
+  exit 1
+fi
+
+log "Start container ..."
+if ! docker compose up -d; then
+  log "Deployment failed !!"
+  exit 1
+fi
+
+COUNT=0
+MAX_RETRY=30
+until curl -sf http://localhost/api/health > /dev/null
 do
-    sleep 1
+  (( COUNT++ ))
+  log "Waiting API ... ($COUNT/$MAX_RETRY)"
+  if (( COUNT >= MAX_RETRY )); then
+    log "API failed to become healthy after $MAX_RETRY attempts"
+    exit 1
+  else
+    log "API is healthy"
+  fi
+  
+  sleep 1
 done
 
-echo "==> Check health API"
-curl http://localhost:3000/api/health
+log "Prune image"
+docker image prune -f
 
-echo
-echo "==> Deploy successful"
+log "Deploy version: $NEW_VERSION"
