@@ -1,5 +1,18 @@
 name: pos
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    networks:
+      - pos_network
+    restart: always
+
   # Layanan 1: Database PostgreSQL
   database:
     image: postgres:15-alpine
