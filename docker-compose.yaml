@@ -2,17 +2,18 @@ name: pos
 services:
   # Layanan 1: Nginx
   nginx:
-    image: nginx:alpine
+    build: ./nginx
     ports:
       - '80:80'
       - '443:443'
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
     networks:
       - pos_network
-    restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
 
   # Layanan 2: Database PostgreSQL
   database:
@@ -30,11 +31,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: always
+    restart: unless-stopped
 
   # Layanan 3: Aplikasi Backend Node.js
   backend:
-    image: holifatulla/pos-api:${APP_VERSION}
+    image: pos-api:${APP_VERSION}
     networks:
       - pos_network
     ports:
@@ -52,7 +53,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    restart: always
+    restart: unless-stopped
 volumes:
   postgres_data:
 networks:
