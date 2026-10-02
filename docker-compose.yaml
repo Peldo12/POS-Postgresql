@@ -35,7 +35,7 @@ services:
 
   # Layanan 3: Aplikasi Backend Node.js
   backend:
-    image: pos-api:${APP_VERSION}
+    image: kholi12/pos-api:${APP_VERSION}
     networks:
       - pos_network
     ports:
