@@ -7,7 +7,7 @@ services:
       - '80:80'
       - '443:443'
     networks:
-      - pos_network
+      - api_network
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://localhost/health']
       interval: 30s
@@ -37,7 +37,7 @@ services:
   backend:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
-      - pos_network
+      - api_network
     ports:
       - '3000:3000'
     volumes:
@@ -45,6 +45,8 @@ services:
       - ./public/upload:/app/public/upload
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - .env
@@ -54,7 +56,23 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+
+  # Layanan 4: Redis cache
+  redis:
+    image: redis:8-alpine
+    networks:
+      - api_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  redis_data:
 networks:
-  pos_network:
+  api_network:
