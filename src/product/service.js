@@ -1,4 +1,4 @@
-const pool = require('../config/pool');
+const { pool } = require('../config/pool');
 const info = require('./info');
 const log = require('./log');
 const model = require('./model');

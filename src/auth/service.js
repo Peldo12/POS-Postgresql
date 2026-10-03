@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const model = require('./model');
-const pool = require('../config/pool');
+const { pool } = require('../config/pool');
 
 async function getById(options) {
   try {

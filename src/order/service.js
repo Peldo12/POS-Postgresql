@@ -1,6 +1,6 @@
 const model = require('./model');
 const productLog = require('../product/log');
-const pool = require('../config/pool');
+const { pool } = require('../config/pool');
 
 async function orders(filters) {
   try {

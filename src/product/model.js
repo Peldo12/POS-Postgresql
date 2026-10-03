@@ -1,4 +1,4 @@
-const pool = require('../config/pool');
+const { pool } = require('../config/pool');
 const AppError = require('../common/utils/AppError');
 
 async function productByIdentifier(options) {

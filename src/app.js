@@ -2,7 +2,11 @@ const express = require('express');
 const app = express();
 const logger = require('./common/middleware/logger');
 const cors = require('cors');
-require('./config/initDB')();
+const { initRedis } = require('./config/redis');
+const { initDB } = require('./config/pool');
+
+initDB();
+initRedis();
 
 app.use(express.json());
 // app.use(express.static("/public/upload"))

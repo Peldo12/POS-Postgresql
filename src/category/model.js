@@ -1,4 +1,4 @@
-const pool = require('../config/pool');
+const { pool } = require('../config/pool');
 
 async function getCategories(options) {
   const { deleted = false } = options;
