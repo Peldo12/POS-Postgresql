@@ -41,20 +41,6 @@ async function create(options) {
   return rows[0];
 }
 
-async function userByToken(options) {
-  const { type, token } = options;
-  const { rows } = await pool.query(
-    `
-    SELECT user_id, token, used_at
-    FROM user_tokens 
-    WHERE token = $1 
-      AND type = $2`,
-    [token, type]
-  );
-
-  return rows[0];
-}
-
 async function userById(options) {
   const { userId, type = 'REFRESH_TOKEN' } = options;
   const { rows } = await pool.query(
@@ -73,7 +59,7 @@ async function userById(options) {
     ON r.id = u.role_id
     JOIN user_tokens t
     ON t.user_id = u.id
-    WHERE u.id = $1 AND t.type = $2`,
+    WHERE u.id::text = $1 AND t.type = $2`,
     [userId, type]
   );
   return rows[0];
@@ -101,18 +87,6 @@ async function userByIdentifier(value) {
     [value]
   );
   return rows[0];
-}
-
-async function updateLogin(client, id) {
-  await client.query(
-    `
-      UPDATE users
-      SET 
-        last_login_at = NOW()
-      WHERE id = $1
-      `,
-    [id]
-  );
 }
 
 async function createToken(options) {
@@ -152,47 +126,31 @@ async function emailVerify(client, userId) {
   return rows[0];
 }
 
-async function updateTokenUse(options) {
-  const { client, userId, type } = options;
-  await client.query(
-    `
-    UPDATE user_tokens 
-    SET 
-      used_at = NOW(),
-      expired_at = NOW()
-    WHERE 
-      user_id = $1 
-    AND 
-      type = $2 
-    AND
-      used_at IS NULL`,
-    [userId, type]
-  );
-}
-
 async function updatePass(options) {
-  const { client, userId, hashed } = options;
-  const { rows } = await client.query(
-    `
-      UPDATE users 
-      SET password = $1 
-      WHERE id = $2
-      RETURNING username, role_id
-    `,
-    [hashed, userId]
-  );
-  return rows[0];
+  try {
+    const { client, userId, hashed } = options;
+    const { rows } = await client.query(
+      `
+        UPDATE users 
+        SET password = $1 
+        WHERE id = $2
+        RETURNING username, role_id
+      `,
+      [hashed, userId]
+    );
+
+    return rows[0];
+  } catch (error) {
+    throw error;
+  }
 }
 
 module.exports = {
   userByUsernameOrEmail,
   create,
-  userByToken,
   userById,
   userByIdentifier,
-  updateLogin,
   createToken,
   emailVerify,
-  updateTokenUse,
   updatePass,
 };

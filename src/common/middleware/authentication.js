@@ -9,7 +9,7 @@ function authenticate(req, res, next) {
 
     if (scheme !== 'Bearer') throw new Error('Wrong token format');
 
-    if (!token) throw new Error('Token not Found');
+    if (!token) throw new Error('Token still empty');
 
     const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
     req.user = decoded;

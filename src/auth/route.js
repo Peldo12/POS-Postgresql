@@ -46,9 +46,21 @@ router.post(
 
 router.get('/me', authenticate, control.me);
 
-router.post('/refresh', validateBody(refreshSchema), authBody, control.token);
+router.post(
+  '/refresh',
+  authenticate,
+  validateBody(refreshSchema),
+  authBody,
+  control.token
+);
 
-router.post('/logout', authBody, limit(authLimit), control.logout);
+router.post(
+  '/logout',
+  authenticate,
+  authBody,
+  limit(authLimit),
+  control.logout
+);
 
 router.post(
   '/forgot',

@@ -17,10 +17,8 @@ async function get(key) {
   return JSON.parse(await client.get(`${key}`));
 }
 
-async function remove(token) {
+async function remove(key) {
   try {
-    const key = `email-token:${token}`;
-
     await client.del(key);
 
     return await get(key);

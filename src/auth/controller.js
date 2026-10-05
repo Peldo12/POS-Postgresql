@@ -11,6 +11,7 @@ const AppError = require('../common/utils/AppError');
 /**
  * @desc register user
  * @route POST /api/auth/register
+ * @require body { username, email, password }
  * @access Public
  */
 async function register(req, res, next) {
@@ -62,6 +63,7 @@ async function register(req, res, next) {
 /**
  * @desc user login, generate token
  * @route POST /api/auth/login
+ * @require body { username/email, password }
  * @access Public
  */
 async function login(req, res, next) {
@@ -77,6 +79,7 @@ async function login(req, res, next) {
     if (!match) throw new AppError(401, 'Invalid Credentials');
 
     const payload = {
+      id: found.id,
       username: found.username,
       email_verified_at: found.email_verified_at,
       role: found.role,
@@ -114,6 +117,7 @@ async function login(req, res, next) {
 /**
  * @desc verify email user
  * @route PUT /api/auth/verify?token=
+ * @require query { token }
  * @access registered user
  */
 async function emailVerify(req, res, next) {
@@ -131,13 +135,14 @@ async function emailVerify(req, res, next) {
       throw new AppError(401, 'Your email already verified');
 
     const result = await service.verifyEmail(user.id);
-    await service.removeToken(token);
+    await service.removeToken(`email-token:${token}`);
 
     success({
       message: 'Your email has verified',
       data: { payload: result },
       res,
     });
+    console.log({ found, user, result });
 
     req.logger.info(`User ${user.username} email was verified`, {
       user: user.username,
@@ -152,6 +157,7 @@ async function emailVerify(req, res, next) {
 /**
  * @desc resend verify email user
  * @route POST /api/auth/re-verify
+ * @require body { username, password }
  * @access registered user
  */
 async function resendEmailVerify(req, res, next) {
@@ -201,6 +207,7 @@ async function resendEmailVerify(req, res, next) {
 /**
  * @desc give user refresh token
  * @route GET /api/auth/me
+ * @require headers Authorization Bearer { token }
  * @access Atleast verified email
  */
 async function me(req, res, next) {
@@ -233,6 +240,7 @@ async function me(req, res, next) {
 /**
  * @desc give user access token
  * @route POST /api/auth/refresh
+ * @require body { refreshToken }
  * @access Atleast verified email
  */
 async function token(req, res, next) {
@@ -279,6 +287,7 @@ async function token(req, res, next) {
 /**
  * @desc remove user refresh token
  * @route POST /api/auth/logout
+ * @require Authorization Bearer { token }, body { refreshToken }
  * @access Atleast user at login
  */
 async function logout(req, res, next) {
@@ -293,9 +302,10 @@ async function logout(req, res, next) {
       token: null,
       type: 'REFRESH_TOKEN',
     });
+
     success({
       message: `User ${ended.user_id} has logout`,
-      data: { payload: ended },
+      data: { payload: { username: user.username, status: 'logout' } },
       res,
     });
 
@@ -312,6 +322,7 @@ async function logout(req, res, next) {
 /**
  * @desc send reset pass to email
  * @route POST /api/auth/forgot
+ * @require body { username/email }
  * @access Atleast registered user
  */
 async function forgotPass(req, res, next) {
@@ -332,8 +343,9 @@ async function forgotPass(req, res, next) {
     };
     const token = generateCrypto('password');
 
+    const key = `pass-token:${token}`;
     await service.saveToken({
-      key: `pass-token${token}`,
+      key,
       value: id,
       payload: {
         EX: 15 * 60 * 1000,
@@ -342,7 +354,7 @@ async function forgotPass(req, res, next) {
     });
 
     await service.sendToken({
-      token,
+      key,
       email,
       subject: 'Reset your password',
       type: 'pass',
@@ -367,25 +379,30 @@ async function forgotPass(req, res, next) {
 /**
  * @desc update user password
  * @route PATCH /api/auth/reset
+ * @require body { password, repeatPassword }
  * @access Atleast registered user
  */
 async function resetPass(req, res, next) {
   try {
     const { token } = req.query;
+    if (!token) throw new AppError(400, 'Token is required');
     const { repeatPassword } = req.body;
-    const user = await service.getByToken({
-      type: 'PASSWORD_RESET',
-      token,
-    });
-    if (!user) throw new AppError(404, 'Invalid reset password token');
-    if (user.used_at) throw new AppError(400, 'Your token already been used');
-    if (new Date(user.expired_at) < new Date())
-      throw new AppError(410, 'Verification token has expired');
+    const found = await service.byToken(`pass-token:${token}`);
+    if (!found) throw new AppError(400, 'Invalid or expired token');
+
+    const user = await service.getByIdentifier(found);
+    if (user.deleted_at)
+      throw new AppError(403, 'Your account was deleted, contact admin');
+    if (!user.email_verified_at)
+      throw new AppError(401, 'Your email not verified');
 
     const data = await service.resetPass({
-      userId: user.user_id,
+      userId: user.id,
       password: repeatPassword,
+      token,
     });
+    if (!data) throw new AppError(500, 'Server problem');
+
     success({
       message: 'Your password was changed',
       data: { payload: data },

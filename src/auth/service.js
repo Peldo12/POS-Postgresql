@@ -21,14 +21,6 @@ async function getByIdentifier(options) {
   }
 }
 
-async function getByToken(options) {
-  try {
-    return await model.userByToken(options);
-  } catch (error) {
-    throw error;
-  }
-}
-
 async function getByNameOrEmail(options) {
   try {
     return await model.userByUsernameOrEmail(options);
@@ -49,9 +41,9 @@ async function saveToken(options) {
   }
 }
 
-async function removeToken(id) {
+async function removeToken(key) {
   try {
-    await redis.remove(id);
+    await redis.remove(key);
   } catch (error) {
     throw error;
   }
@@ -84,15 +76,17 @@ async function register(options) {
 
   // External Services
   let emailToken;
+  let key;
   try {
     const result = await redis.create({ id: user.id });
     emailToken = result.split(':')[1];
+    key = `email-token:${emailToken}`;
   } catch (error) {
-    await redis.remove(emailToken);
+    await redis.remove(key);
     throw error;
   }
   await sendToken({
-    token: emailToken,
+    key,
     email,
     subject: 'Verify your email',
     type: 'email',
@@ -106,15 +100,15 @@ async function register(options) {
 }
 
 async function sendToken(options) {
-  const { token, email, type, subject } = options;
+  const { key, email, type, subject } = options;
   try {
     await sendEmail({
       email,
       subject,
-      html: template[type](token),
+      html: template[type](key.split(':')[1]),
     });
   } catch (error) {
-    await redis.remove(token);
+    await redis.remove(key);
     throw error;
   }
 }
@@ -168,9 +162,9 @@ async function verifyEmail(userId) {
 
 async function resetPass(options) {
   const client = await pool.connect();
+  const { token, userId, password } = options;
   try {
     await client.query('BEGIN');
-    const { userId, password } = options;
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await model.updatePass({
@@ -178,13 +172,9 @@ async function resetPass(options) {
       userId,
       hashed,
     });
-    await model.updateTokenUse({
-      client,
-      userId,
-      type: 'PASSWORD_RESET',
-    });
 
     await client.query('COMMIT');
+    await redis.remove(`pass-token:${token}`);
     return user;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -195,10 +185,9 @@ async function resetPass(options) {
 }
 
 module.exports = {
-  getByNameOrEmail,
   getById,
   getByIdentifier,
-  getByToken,
+  getByNameOrEmail,
   byToken,
   saveToken,
   removeToken,
