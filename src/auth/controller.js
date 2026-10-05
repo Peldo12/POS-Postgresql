@@ -35,7 +35,6 @@ async function register(req, res, next) {
 
     const result = await service.register({ ...req.body });
     const payload = {
-      id: result.id,
       username: result.username,
       role: result.role_id,
     };
@@ -47,21 +46,6 @@ async function register(req, res, next) {
       res,
     });
 
-    sendEmail({
-      email,
-      subject: 'Verify your email',
-      html: `${process.env.EMAIL_VERIFY_URL}${result.emailToken}`,
-    })
-      .then(() => {
-        req.logger.info('Success send email token', {
-          user: username,
-          sended: dateNow('iso'),
-        });
-      })
-      .catch((err) => {
-        req.logger.error('Failed send email:', err);
-      });
-
     req.logger.info(
       `User ${username} was added, email was sended to ${email}`,
       {
@@ -69,8 +53,6 @@ async function register(req, res, next) {
         created: dateNow('iso'),
       }
     );
-
-    return;
   } catch (e) {
     req.logger.error('Failed on register', { error: e });
     next(e);
@@ -95,7 +77,6 @@ async function login(req, res, next) {
     if (!match) throw new AppError(401, 'Invalid Credentials');
 
     const payload = {
-      id: found.id,
       username: found.username,
       email_verified_at: found.email_verified_at,
       role: found.role,
@@ -140,16 +121,18 @@ async function emailVerify(req, res, next) {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
 
-    const user = await service.getByToken({
-      type: 'EMAIL_VERIFY',
-      token,
-    });
-    if (!user) throw new AppError(404, 'Invalid verification token');
-    if (user.used_at) throw new AppError(400, 'Your token already been used');
-    if (new Date(user.expired_at) < new Date())
-      throw new AppError(410, 'Verification token has expired');
+    const found = await service.byToken(`email-token:${token}`);
+    if (!found) throw new AppError(400, 'Invalid or expired token');
+    const user = await service.getByIdentifier(found);
 
-    const result = await service.verifyEmail(user.user_id);
+    if (user.deleted_at)
+      throw new AppError(403, 'Your account was deleted, contact admin');
+    if (user.email_verified_at)
+      throw new AppError(401, 'Your email already verified');
+
+    const result = await service.verifyEmail(user.id);
+    await service.removeToken(token);
+
     success({
       message: 'Your email has verified',
       data: { payload: result },
@@ -168,7 +151,7 @@ async function emailVerify(req, res, next) {
 
 /**
  * @desc resend verify email user
- * @route PUT /api/auth/verify?token=
+ * @route POST /api/auth/re-verify
  * @access registered user
  */
 async function resendEmailVerify(req, res, next) {
@@ -184,10 +167,20 @@ async function resendEmailVerify(req, res, next) {
     const match = await bcrypt.compare(password, found.password);
     if (!match) throw new AppError(401, 'Invalid Credentials');
 
-    const result = await service.createToken({
-      id: found.id,
-      token: generateCrypto('email'),
-      type: 'EMAIL_VERIFY',
+    const token = await generateCrypto('email');
+    await service.saveToken({
+      key: `email-token:${token}`,
+      value: found.id,
+      payload: {
+        EX: 60 * 60 * 1000,
+      },
+    });
+
+    await service.sendToken({
+      token,
+      email: found.email,
+      subject: 'Verify your email',
+      type: 'email',
     });
 
     success({
@@ -195,24 +188,9 @@ async function resendEmailVerify(req, res, next) {
       res,
     });
 
-    sendEmail({
-      email: found.email,
-      subject: 'Verify your email',
-      html: `${process.env.EMAIL_VERIFY_URL}${result.token}`,
-    })
-      .then(() => {
-        req.logger.info('Success send email token', {
-          user: username,
-          sended: dateNow('iso'),
-        });
-      })
-      .catch((err) => {
-        req.logger.error('Failed send email:', err);
-      });
-
     req.logger.info(`User ${found.username} resend verify email `, {
       user: found.username,
-      sended_at: dateNow('iso'),
+      send_at: dateNow('iso'),
     });
   } catch (e) {
     req.logger.error('Failed on resend verify email', { error: e });
@@ -229,10 +207,12 @@ async function me(req, res, next) {
   try {
     const { id } = req.user;
     const user = await service.getById({ userId: id });
+
     if (!user) throw new AppError(404, 'Username not found');
     if (user.deleted_at)
       throw new AppError(403, 'Your account was deleted, contact admin');
     if (!user.token) throw new AppError(500, 'Please login');
+
     const { username, role, token } = user;
     success({
       message: `Onboard is ${username}`,
@@ -259,7 +239,10 @@ async function token(req, res, next) {
   try {
     const { id } = req.user;
     const { refreshToken } = req.body;
+    if (!refreshToken) throw new AppError(400, 'No token has given');
+
     const user = await service.getById({ userId: id });
+
     if (!user) throw new AppError(404, 'User not found');
     if (user.deleted_at)
       throw new AppError(403, 'Your account was deleted, contact admin');
@@ -333,23 +316,36 @@ async function logout(req, res, next) {
  */
 async function forgotPass(req, res, next) {
   try {
-    const user = await service.getByIdentifier(req.body.username);
+    const { username } = req.body;
+    if (!username) throw new AppError(400, 'No username has given');
+
+    const user = await service.getByIdentifier(username);
     if (!user) throw new AppError(404, 'Requested account not registered');
     if (user.deleted_at)
       throw new AppError(404, 'Your account was deleted, contact admin');
 
-    const { id, username, email, role } = user;
+    const { id, email, role } = user;
     const payload = {
-      id,
       username,
       role,
       generated_at: dateNow('iso'),
     };
     const token = generateCrypto('password');
-    const data = service.createToken({
-      id: user.id,
+
+    await service.saveToken({
+      key: `pass-token${token}`,
+      value: id,
+      payload: {
+        EX: 15 * 60 * 1000,
+        NX: true,
+      },
+    });
+
+    await service.sendToken({
       token,
-      type: 'PASSWORD_RESET',
+      email,
+      subject: 'Reset your password',
+      type: 'pass',
     });
 
     success({
@@ -357,21 +353,6 @@ async function forgotPass(req, res, next) {
       data: { payload },
       res,
     });
-
-    sendEmail({
-      email: email,
-      subject: 'Reset your password',
-      html: `${process.env.RESET_URL}${token}`,
-    })
-      .then(() => {
-        req.logger.info('Success send reset password token', {
-          user: username,
-          sended: dateNow('iso'),
-        });
-      })
-      .catch((err) => {
-        req.logger.error('Failed send email:', err);
-      });
 
     req.logger.info(`User ${username} was request to reset password`, {
       user: username,

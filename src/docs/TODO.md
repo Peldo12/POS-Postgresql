@@ -6,9 +6,10 @@
 - [x] Verify Email
 - [x] Resend Verify Email
 - [x] Login
+- [x] me
 - [x] Refresh Token
 - [x] Logout
-- [ ] Forgot Password
+- [x] Forgot Password
 - [ ] Reset Password
 
 ## Products

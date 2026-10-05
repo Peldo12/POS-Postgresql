@@ -9,12 +9,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async (options) => {
+const sendEmail = async ({ email, subject, html }) => {
   await transporter.sendMail({
-    from: '"POS System" <noreply@pos.com>',
-    to: options.email,
-    subject: options.subject,
-    html: options.html,
+    from: 'POS-API <noreply@pos.com>',
+    to: email,
+    subject,
+    html,
   });
 };
 

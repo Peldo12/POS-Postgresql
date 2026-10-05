@@ -2,51 +2,48 @@
 
 set -e
 
-echo "==> File checking !!!"
+log() {
+  echo "==> $1"
+}
 
-if [[ ! -f package.json ]]
-then
-  echo 'package.json not found'
+log "File cheching ..."
+
+if [[ ! -f Dockerfile ]]; then
+  log "Dockerfile not found !!"
   exit 1
 fi
 
-if [[ ! -f .env ]]
-then
-  echo '.env not found'
+if [[ ! -f package.json && ! -f package-lock.json ]]; then
+  log "package is missing !!"
   exit 1
 fi
 
-if [[ ! -d node_modules ]]
-then
-  echo 'node_modules not found'
-  echo 'running npm ci'
-  npm ci
+log "Build starting ..."
+if [[ -z "$1" ]]; then
+  read -p "==> Input version : " NEW_VERSION
+else
+  NEW_VERSION="$1"
 fi
 
-echo "==> checking Dockerfile !!!"
-if [[ ! -f Dockerfile ]]
-then
-  echo "Dockerfile not found"
+if [[ -z "$NEW_VERSION" ]]; then
+  log "No version given, exit !!"
   exit 1
 fi
 
-if [[ ! -f docker-compose.yaml ]]
-then
-  echo "docker-compose.yaml not found"
-  exit 1
+log "Building image ..."
+
+if ! docker build -t kholi12/pos-api:"$NEW_VERSION"; then
+  log "Failed building image !!"
+else
+  log "Image $NEW_VERSION has been build"
 fi
 
-echo "==> Compose up"
-docker compose up --build -d
-  
-echo "==> Wait API ready"
-until curl -sf http://localhost:3000/api/health > /dev/null
-do
-    sleep 1
-done
+log "Push image ..."
+if ! docker push kholi12/pos-api:"$NEW_VERSION";
+  log "Failed push image !!"
+else
+  log "Image $NEW_VERSION has successfully pushed"
+fi
 
-echo "==> Check health API"
-curl http://localhost:3000/api/health
-
-echo
-echo "==> Deploy successful"
+log "Development ended"
+log "New version: $NEW_VERSION"

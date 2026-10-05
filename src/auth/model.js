@@ -93,7 +93,11 @@ async function userByIdentifier(value) {
     FROM users u
     JOIN roles r 
     ON r.id = u.role_id
-    WHERE (u.username = $1 OR u.email = $1)`,
+    WHERE (
+      u.username = $1 OR
+      u.email = $1 OR
+      u.id::text = $1
+    )`,
     [value]
   );
   return rows[0];

@@ -3,7 +3,11 @@
 set -e
 
 log() {
-    echo "==> $1"
+  text="$1"
+for ((i=0; i<${#text}; i++)); do
+  echo -ne "\e[5;32m${text:$i:1}\e[0m"
+  sleep 0.015
+done
 }
 
 log "Open folder project"
@@ -21,8 +25,8 @@ if [[ -z "$NEW_VERSION" ]]; then
 fi
 
 if ! OLD_VERSION=$(grep '^APP_VERSION=' .env | cut -d '=' -f2); then
-    log "APP_VERSION not found in .env"
-    exit 1
+  log "APP_VERSION not found in .env"
+  exit 1
 fi
 
 set_version() {
@@ -30,8 +34,8 @@ set_version() {
 }
 
 if ! set_version "$NEW_VERSION"; then
-    log "Failed to update APP_VERSION"
-    exit 1
+  log "Failed to update APP_VERSION"
+  exit 1
 fi
 
 log "Target version: $NEW_VERSION"

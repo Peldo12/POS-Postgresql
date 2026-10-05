@@ -71,8 +71,6 @@ async function initDB() {
     used_at TIMESTAMP DEFAULT NULL,
     
     CHECK (type IN (
-    'EMAIL_VERIFY',
-    'PASSWORD_RESET',
     'REFRESH_TOKEN'
     )),
     

@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const model = require('./model');
+const redis = require('./redis');
+const sendEmail = require('../common/helpers/email');
+const template = require('../common/utils/template.js');
 const { pool } = require('../config/pool');
 
 async function getById(options) {
@@ -35,39 +37,85 @@ async function getByNameOrEmail(options) {
   }
 }
 
+async function byToken(key) {
+  return await redis.get(key);
+}
+
+async function saveToken(options) {
+  try {
+    await redis.save(options);
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function removeToken(id) {
+  try {
+    await redis.remove(id);
+  } catch (error) {
+    throw error;
+  }
+}
+
 async function register(options) {
   const client = await pool.connect();
+
+  // PostgreSQL Transaction
+  let user;
+  const { username, email, password } = options;
   try {
-    const { username, email, password } = options;
     const hashed = await bcrypt.hash(password, 10);
     await client.query('BEGIN');
 
-    const user = await model.create({
+    user = await model.create({
       client,
       username,
       email,
       hashed,
     });
-    const emailToken = crypto.randomBytes(32).toString('hex');
-    await model.createToken({
-      client,
-      id: user.id,
-      token: emailToken,
-      type: 'EMAIL_VERIFY',
-    });
 
     await client.query('COMMIT');
-    return {
-      id: user.id,
-      username: user.username,
-      role_id: user.role_id,
-      emailToken,
-    };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
   } finally {
     await client.release();
+  }
+
+  // External Services
+  let emailToken;
+  try {
+    const result = await redis.create({ id: user.id });
+    emailToken = result.split(':')[1];
+  } catch (error) {
+    await redis.remove(emailToken);
+    throw error;
+  }
+  await sendToken({
+    token: emailToken,
+    email,
+    subject: 'Verify your email',
+    type: 'email',
+  });
+
+  return {
+    id: user.id,
+    username: user.username,
+    role_id: user.role_id,
+  };
+}
+
+async function sendToken(options) {
+  const { token, email, type, subject } = options;
+  try {
+    await sendEmail({
+      email,
+      subject,
+      html: template[type](token),
+    });
+  } catch (error) {
+    await redis.remove(token);
+    throw error;
   }
 }
 
@@ -103,11 +151,6 @@ async function verifyEmail(userId) {
     await client.query('BEGIN');
 
     const user = await model.emailVerify(client, userId);
-    await model.updateTokenUse({
-      client,
-      userId,
-      type: 'EMAIL_VERIFY',
-    });
 
     await client.query('COMMIT');
     return {
@@ -156,7 +199,11 @@ module.exports = {
   getById,
   getByIdentifier,
   getByToken,
+  byToken,
+  saveToken,
+  removeToken,
   register,
+  sendToken,
   createToken,
   verifyEmail,
   resetPass,
