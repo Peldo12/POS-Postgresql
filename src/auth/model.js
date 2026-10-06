@@ -1,6 +1,4 @@
 const { pool } = require('../config/pool');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 
 const tokenExpired = require('../constants/tokenExpired');
 

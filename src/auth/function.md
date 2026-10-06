@@ -4,8 +4,8 @@
 
 - [x] register
 - [x] login
-- [x] emailVerify
-- [ ] resendEmailVerify
+- [x] verify
+- [x] resendEmailVerify
 - [x] me
 - [x] token
 - [x] logout

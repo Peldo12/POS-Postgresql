@@ -36,7 +36,7 @@ async function create(options) {
       key,
       value: `${id}`,
       payload: {
-        EX: 60 * 60 * 1000,
+        EX: 60 * 60,
       },
     });
   } catch (error) {

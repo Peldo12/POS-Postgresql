@@ -1,11 +1,8 @@
-const bcrypt = require('bcryptjs');
-
 const service = require('./service');
 const generateToken = require('../common/helpers/token');
 const generateCrypto = require('../common/helpers/crypto');
 const dateNow = require('../common/helpers/date');
 const success = require('../common/helpers/response');
-const sendEmail = require('../common/helpers/email');
 const AppError = require('../common/utils/AppError');
 
 /**
@@ -17,28 +14,7 @@ const AppError = require('../common/utils/AppError');
 async function register(req, res, next) {
   try {
     const { username, email } = req.body;
-    const user = await service.getByNameOrEmail({
-      username,
-      email,
-    });
-
-    if (user) {
-      const params = [];
-      if (user.username === username) {
-        params.push('Username');
-      }
-      if (user.email === email) {
-        params.push('Email');
-      }
-      const current = params.length > 1 ? params.join(' & ') : params.join('');
-      throw new AppError(409, `${current} already registered`);
-    }
-
-    const result = await service.register({ ...req.body });
-    const payload = {
-      username: result.username,
-      role: result.role_id,
-    };
+    const payload = await service.register(req.body);
 
     success({
       statusCode: 201,
@@ -54,9 +30,9 @@ async function register(req, res, next) {
         created: dateNow('iso'),
       }
     );
-  } catch (e) {
-    req.logger.error('Failed on register', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on register', { error });
+    next(error);
   }
 }
 
@@ -68,38 +44,11 @@ async function register(req, res, next) {
  */
 async function login(req, res, next) {
   try {
-    const { username, password } = req.body;
-    const found = await service.getByIdentifier(username);
-    if (!found) throw new AppError(404, 'Username or email not registered');
-    if (found.deleted_at)
-      throw new AppError(403, 'Your account was deleted, contact admin');
-    if (!found.email_verified_at)
-      throw new AppError(401, 'Your email not yet verified');
-    const match = await bcrypt.compare(password, found.password);
-    if (!match) throw new AppError(401, 'Invalid Credentials');
-
-    const payload = {
-      id: found.id,
-      username: found.username,
-      email_verified_at: found.email_verified_at,
-      role: found.role,
-      login_at: dateNow(),
-      generated_at: dateNow('iso'),
-    };
-    const accessToken = generateToken({ payload });
-    const refreshToken = generateToken({
-      payload,
-      type: 'refresh',
-    });
-
-    await service.createToken({
-      id: found.id,
-      token: refreshToken,
-      type: 'REFRESH_TOKEN',
-    });
+    const { username } = req.body;
+    const { accessToken, refreshToken } = await service.isUser({ ...req.body });
 
     success({
-      message: `Login successful, welcome ${found.username}`,
+      message: `Login successful, welcome ${username}`,
       data: { accessToken, refreshToken },
       res,
     });
@@ -108,9 +57,9 @@ async function login(req, res, next) {
       user: username,
       login_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on login', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on login', { error });
+    next(error);
   }
 }
 
@@ -120,37 +69,26 @@ async function login(req, res, next) {
  * @require query { token }
  * @access registered user
  */
-async function emailVerify(req, res, next) {
+async function verify(req, res, next) {
   try {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
 
-    const found = await service.byToken(`email-token:${token}`);
-    if (!found) throw new AppError(400, 'Invalid or expired token');
-    const user = await service.getByIdentifier(found);
-
-    if (user.deleted_at)
-      throw new AppError(403, 'Your account was deleted, contact admin');
-    if (user.email_verified_at)
-      throw new AppError(401, 'Your email already verified');
-
-    const result = await service.verifyEmail(user.id);
-    await service.removeToken(`email-token:${token}`);
+    const result = await service.isVerify(token);
 
     success({
       message: 'Your email has verified',
       data: { payload: result },
       res,
     });
-    console.log({ found, user, result });
 
     req.logger.info(`User ${user.username} email was verified`, {
       user: user.username,
       verified_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on verify email', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on verify email', { error });
+    next(error);
   }
 }
 
@@ -163,30 +101,11 @@ async function emailVerify(req, res, next) {
 async function resendEmailVerify(req, res, next) {
   try {
     const { username, password } = req.body;
-    const found = await service.getByIdentifier(username);
-    if (!found) throw new AppError(404, 'Username or email not registered');
-    if (found.deleted_at)
-      throw new AppError(403, 'Your account was deleted, contact admin');
-    if (found.email_verified_at)
-      throw new AppError(401, 'Your email already verified');
+    const { id, email } = await service.isUser(req.body, (resend = true));
 
-    const match = await bcrypt.compare(password, found.password);
-    if (!match) throw new AppError(401, 'Invalid Credentials');
-
-    const token = await generateCrypto('email');
-    await service.saveToken({
-      key: `email-token:${token}`,
-      value: found.id,
-      payload: {
-        EX: 60 * 60 * 1000,
-      },
-    });
-
-    await service.sendToken({
-      token,
-      email: found.email,
-      subject: 'Verify your email',
-      type: 'email',
+    const result = await service.saveAndSendToken({
+      id,
+      email,
     });
 
     success({
@@ -194,13 +113,13 @@ async function resendEmailVerify(req, res, next) {
       res,
     });
 
-    req.logger.info(`User ${found.username} resend verify email `, {
-      user: found.username,
+    req.logger.info(`User ${username} resend verify email `, {
+      user: username,
       send_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on resend verify email', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on resend verify email', { error });
+    next(error);
   }
 }
 
@@ -231,9 +150,9 @@ async function me(req, res, next) {
       user: username,
       requested_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on profile request', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on profile request', { error });
+    next(error);
   }
 }
 
@@ -278,9 +197,9 @@ async function token(req, res, next) {
       user: user.username,
       requested_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on token request', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on token request', { error });
+    next(error);
   }
 }
 
@@ -313,9 +232,9 @@ async function logout(req, res, next) {
       user: ended.username,
       logout_at: dateNow('iso'),
     });
-  } catch (e) {
-    req.logger.error('Failed on logout', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error('Failed on logout', { error });
+    next(error);
   }
 }
 
@@ -348,7 +267,7 @@ async function forgotPass(req, res, next) {
       key,
       value: id,
       payload: {
-        EX: 15 * 60 * 1000,
+        EX: 15 * 60,
         NX: true,
       },
     });
@@ -421,7 +340,7 @@ async function resetPass(req, res, next) {
 module.exports = {
   register,
   login,
-  emailVerify,
+  verify,
   resendEmailVerify,
   me,
   token,

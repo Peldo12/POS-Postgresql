@@ -28,7 +28,7 @@ router.post(
   control.register
 );
 
-router.get('/verify', limit(authLimit), control.emailVerify);
+router.get('/verify', limit(authLimit), control.verify);
 
 router.post(
   '/re-verify',
