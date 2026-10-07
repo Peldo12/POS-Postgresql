@@ -39,9 +39,9 @@ else
 fi
 
 log "Push image ..."
-if ! docker push kholi12/pos-api:"$NEW_VERSION";
+if ! docker push kholi12/pos-api:"$NEW_VERSION"; then
   log "Failed push image !!"
-else;
+else
   log "Image $NEW_VERSION has successfully pushed"
 fi
 
