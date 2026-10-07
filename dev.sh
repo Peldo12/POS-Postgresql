@@ -32,7 +32,7 @@ fi
 
 log "Building image ..."
 
-if ! docker build -t kholi12/pos-api:"$NEW_VERSION"; then
+if ! docker build . -t kholi12/pos-api:"$NEW_VERSION"; then
   log "Failed building image !!"
 else
   log "Image $NEW_VERSION has been build"
