@@ -34,7 +34,7 @@ router.post(
   '/re-verify',
   limit(authLimit),
   validateBody(loginSchema),
-  control.resendEmailVerify
+  control.resendVerify
 );
 
 router.post(
@@ -46,13 +46,7 @@ router.post(
 
 router.get('/me', authenticate, control.me);
 
-router.post(
-  '/refresh',
-  authenticate,
-  validateBody(refreshSchema),
-  authBody,
-  control.token
-);
+router.post('/refresh', validateBody(refreshSchema), authBody, control.token);
 
 router.post(
   '/logout',

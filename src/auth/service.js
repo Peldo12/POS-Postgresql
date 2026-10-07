@@ -1,63 +1,74 @@
-const bcrypt = require('bcryptjs');
 const model = require('./model');
 const redis = require('./redis');
 const dateNow = require('../common/helpers/date');
 const sendEmail = require('../common/helpers/email');
 const hash = require('../common/helpers/hash');
 const generateToken = require('../common/helpers/token');
+const transaction = require('../common/helpers/transaction');
+const generateCrypto = require('../common/helpers/crypto');
 const template = require('../common/utils/template.js');
 const { pool } = require('../config/pool');
 const AppError = require('../common/utils/AppError');
 
-async function getById(options) {
-  try {
-    return await model.userById(options);
-  } catch (error) {
-    throw error;
-  }
-}
+// ======================
+// INTERNAL HELPERS
+// ======================
 
-async function getByIdentifier(options) {
-  try {
-    return await model.userByIdentifier(options);
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function getByNameOrEmail(options) {
-  try {
-    return await model.userByUsernameOrEmail(options);
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function byToken(key) {
-  return await redis.get(key);
-}
-
-async function saveToken(options) {
-  try {
-    await redis.save(options);
-  } catch (error) {
-    throw error;
-  }
+async function saveToken({ key, value, options = {} }) {
+  await redis.save({ key, value, ...options });
 }
 
 async function removeToken(key) {
-  try {
-    await redis.remove(key);
-  } catch (error) {
-    throw error;
-  }
+  await redis.remove(key);
 }
 
-async function register(options) {
-  const client = await pool.connect();
-  const { username, email, password } = options;
+/**
+ * Buat token + simpan ke Redis + kirim email
+ */
+async function createAndSendToken({
+  userId,
+  email,
+  type, // 'email' | 'pass'
+  subject,
+  ttlMinutes = 15,
+}) {
+  const token = generateCrypto(type);
+  const key = `${type}-token:${token}`;
 
-  const found = await model.userByUsernameOrEmail(options);
+  try {
+    await saveToken({
+      key,
+      value: userId,
+      options: {
+        EX: ttlMinutes * 60,
+        NX: true,
+      },
+    });
+
+    await sendEmail({
+      email,
+      subject,
+      html: template[type](token),
+    });
+  } catch (error) {
+    await removeToken(key);
+    throw error;
+  }
+
+  return token;
+}
+
+// ======================
+// AUTH SERVICE
+// ======================
+
+/**
+ * Register user baru
+ */
+async function register({ username, email, password }) {
+  const client = await pool.connect();
+
+  const found = await model.userByUsernameOrEmail({ username, email });
   if (found) {
     const params = [];
     if (found.username === username) {
@@ -70,29 +81,23 @@ async function register(options) {
     throw new AppError(409, `${current} already registered`);
   }
 
-  // PostgreSQL Transaction
-  let user;
-  try {
-    const hashed = await hash.create(password);
-    await client.query('BEGIN');
-
-    user = await model.create({
+  const hashed = await hash.create(password);
+  const user = await transaction(async (client) => {
+    return await model.create({
       client,
       username,
       email,
       hashed,
     });
+  });
 
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
-
-  // External Services
-  await saveAndSendToken({ id: user.id, email });
+  await createAndSendToken({
+    userId: user.id,
+    email,
+    type: 'email',
+    subject: 'Verify your email',
+    ttlMinutes: 60,
+  });
 
   return {
     username: user.username,
@@ -100,183 +105,216 @@ async function register(options) {
   };
 }
 
-async function saveAndSendToken({ id, email }) {
-  let emailToken;
-  let key;
-  try {
-    const result = await redis.create({ id });
-    emailToken = result.split(':')[1];
-    key = `email-token:${emailToken}`;
-  } catch (error) {
-    await redis.remove(key);
-    throw error;
-  }
-  await sendToken({
-    key,
-    email,
-    subject: 'Verify your email',
-    type: 'email',
+/**
+ * Verify email user
+ */
+async function verifyEmail(token) {
+  const key = `email-token:${token}`;
+  const userId = await redis.get(key);
+  if (!userId) throw new AppError(400, 'Invalid or expired token');
+
+  const user = await model.userByIdentifier(userId);
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (user.email_verified_at)
+    throw new AppError(401, 'Your email already verified');
+  const updatedUser = await transaction(async (client) => {
+    return await model.verifyEmail(client, userId);
   });
+
+  await removeToken(key);
+  return {
+    username: updatedUser.username,
+    role_id: updatedUser.role_id,
+    email_verified_at: updatedUser.email_verified_at,
+  };
 }
 
-async function isUser({ username, password }, resend) {
-  try {
-    const found = await model.userByIdentifier(username);
-    if (!found) throw new AppError(404, 'Username or email not registered');
-    if (found.deleted_at)
-      throw new AppError(403, 'Your account was deleted, contact admin');
-    if (!found.email_verified_at && !resend)
-      throw new AppError(401, 'Your email not yet verified');
-    const match = await hash.verify(password, found.password);
-    if (!match) throw new AppError(401, 'Invalid Credentials');
+/**
+ * Resend verification email
+ */
+async function resendVerification({ username, password }) {
+  const user = await model.userByIdentifier(username);
 
-    const payload = {
-      id: found.id,
-      username,
-      email_verified_at: found.email_verified_at,
-      role: found.role,
-      login_at: dateNow(),
-      generated_at: dateNow('iso'),
-    };
+  if (!user) throw new AppError(404, 'Username or email not registered');
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (user.email_verified_at)
+    throw new AppError(400, 'Your email already verified');
 
-    const { id, accessToken, refreshToken } = await access(payload, found.id);
+  const match = await hash.verify(password, user.password);
+  if (!match) throw new AppError(401, 'Invalid Credentials');
 
-    return {
-      id,
-      accessToken,
-      refreshToken,
-      email: found.email,
-    };
-  } catch (error) {
-    throw error;
-  }
+  await createAndSendToken({
+    userId: user.id,
+    email: user.email,
+    type: 'email',
+    subject: 'Verify your email',
+    ttlMinutes: 60,
+  });
+
+  return { message: 'Verification email has been resent' };
 }
 
-async function access(payload, id) {
+/**
+ * Login
+ */
+async function login({ username, password }) {
+  const user = await model.userByIdentifier(username);
+
+  if (!user) throw new AppError(404, 'Username or email not registered');
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (!user.email_verified_at)
+    throw new AppError(401, 'Your email not yet verified');
+
+  const match = await hash.verify(password, user.password);
+  if (!match) throw new AppError(401, 'Invalid Credentials');
+
+  return issueTokens(user);
+}
+
+/**
+ * Forgot Password
+ */
+async function forgotPassword({ username }) {
+  const user = await model.userByIdentifier(username);
+
+  if (!user) throw new AppError(404, 'Username or email not registered');
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (!user.email_verified_at)
+    throw new AppError(401, 'Your email not verified');
+
+  await createAndSendToken({
+    userId: user.id,
+    email: user.email,
+    type: 'pass',
+    subject: 'Reset your password',
+    ttlMinutes: 15,
+  });
+
+  return { message: 'Check your email for reset password' };
+}
+
+/**
+ * Reset Password
+ */
+async function resetPassword({ token, password }) {
+  const key = `pass-token:${token}`;
+  const userId = await redis.get(key);
+
+  if (!userId) throw new AppError(400, 'Invalid or expired token');
+
+  const user = await model.userByIdentifier(userId);
+
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (!user.email_verified_at)
+    throw new AppError(401, 'Your email not verified');
+
+  const hashed = await hash.create(password);
+
+  const updatedUser = await transaction(async (client) => {
+    return await model.updatePass({
+      client,
+      userId: user.id,
+      hashed,
+    });
+  });
+
+  await removeToken(key);
+
+  return updatedUser;
+}
+
+/**
+ * Refresh Token
+ */
+async function refreshToken({ userId, refreshToken }) {
+  const user = await model.userById({ userId });
+
+  if (!user) throw new AppError(404, 'User not found');
+  if (user.deleted_at)
+    throw new AppError(403, 'Your account was deleted, contact admin');
+  if (!user.token) throw new AppError(401, 'Please login again');
+  if (user.token !== refreshToken)
+    throw new AppError(403, 'Refresh token mismatch');
+
+  return issueTokens(user, true);
+}
+
+/**
+ * Issue Access + Refresh Token
+ */
+async function issueTokens(user, isRefresh = false) {
+  const payload = {
+    id: user.id,
+    username: user.username,
+    email_verified_at: user.email_verified_at,
+    role: user.role,
+    login_at: isRefresh ? user.last_login_at : dateNow(),
+    generated_at: dateNow('iso'),
+  };
+
   const accessToken = generateToken({ payload });
   const refreshToken = generateToken({
     payload,
     type: 'refresh',
   });
-  await createToken({
-    id,
-    token: refreshToken,
-    type: 'REFRESH_TOKEN',
-  });
-  return { id, accessToken, refreshToken };
-}
 
-async function sendToken(options) {
-  const { key, email, type, subject } = options;
-  try {
-    await sendEmail({
-      email,
-      subject,
-      html: template[type](key.split(':')[1]),
-    });
-  } catch (error) {
-    await redis.remove(key);
-    throw error;
-  }
-}
-
-async function createToken(options) {
-  const client = await pool.connect();
-  try {
-    const { id, token, type } = options;
-    if (!id || token === undefined || !type)
-      throw new Error('Value still missing on create or update token');
-    await client.query('BEGIN');
-
-    const result = await model.createToken({
+  await transaction(async (client) => {
+    return await model.createToken({
       client,
-      id,
-      token,
-      type,
+      id: user.id,
+      token: refreshToken,
+      type: 'REFRESH_TOKEN',
     });
+  });
 
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+  return {
+    id: user.id,
+    accessToken,
+    refreshToken,
+    email: user.email,
+  };
 }
 
-async function verifyEmail(userId, token) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const user = await model.emailVerify(client, userId);
-
-    await client.query('COMMIT');
-    await redis.remove(`email-token:${token}`);
-
-    return {
-      username: user.username,
-      role_id: user.role_id,
-      email_verified_at: user.email_verified_at,
-    };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
-}
-
-async function isVerify(token) {
-  const found = await redis.get(`email-token:${token}`);
-  if (!found) throw new AppError(400, 'Invalid or expired token');
-  const user = await model.userByIdentifier(found);
-
+/**
+ * Get user by ID (untuk /me dan logout)
+ */
+async function getById(options) {
+  const user = await model.userById(options);
+  if (!user) throw new AppError(404, 'User not found');
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
-  if (user.email_verified_at)
-    throw new AppError(401, 'Your email already verified');
-  return await verifyEmail(user.id, token);
+  return { user };
 }
 
-async function resetPass(options) {
-  const client = await pool.connect();
-  const { token, userId, password } = options;
-  try {
-    await client.query('BEGIN');
-    const hashed = await bcrypt.hash(password, 10);
-
-    const user = await model.updatePass({
+/**
+ * Create / Update token (dipakai di logout juga)
+ */
+async function createToken(options) {
+  return transaction(async (client) => {
+    return model.createToken({
       client,
-      userId,
-      hashed,
+      ...options,
     });
-
-    await client.query('COMMIT');
-    await redis.remove(`pass-token:${token}`);
-    return user;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+  });
 }
+
+// ======================
+// EXPORTS
+// ======================
 
 module.exports = {
-  getById,
-  getByIdentifier,
-  getByNameOrEmail,
-  byToken,
-  saveToken,
-  removeToken,
   register,
-  saveAndSendToken,
-  isUser,
-  sendToken,
-  createToken,
   verifyEmail,
-  isVerify,
-  resetPass,
+  resendVerification,
+  login,
+  forgotPassword,
+  resetPassword,
+  refreshToken,
+  getById,
+  createToken,
 };

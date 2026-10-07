@@ -107,7 +107,7 @@ async function createToken(options) {
   return rows[0];
 }
 
-async function emailVerify(client, userId) {
+async function verifyEmail(client, userId) {
   const { rows } = await client.query(
     `
     UPDATE users 
@@ -149,6 +149,6 @@ module.exports = {
   userById,
   userByIdentifier,
   createToken,
-  emailVerify,
+  verifyEmail,
   updatePass,
 };
