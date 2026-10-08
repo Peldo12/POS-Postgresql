@@ -66,8 +66,6 @@ async function createAndSendToken({
  * Register user baru
  */
 async function register({ username, email, password }) {
-  const client = await pool.connect();
-
   const found = await model.userByUsernameOrEmail({ username, email });
   if (found) {
     const params = [];
@@ -100,8 +98,7 @@ async function register({ username, email, password }) {
   });
 
   return {
-    username: user.username,
-    role_id: user.role_id,
+    userId: user.id,
   };
 }
 
@@ -124,9 +121,8 @@ async function verifyEmail(token) {
 
   await removeToken(key);
   return {
+    userId: user.id,
     username: updatedUser.username,
-    role_id: updatedUser.role_id,
-    email_verified_at: updatedUser.email_verified_at,
   };
 }
 
@@ -153,7 +149,10 @@ async function resendVerification({ username, password }) {
     ttlMinutes: 60,
   });
 
-  return { message: 'Verification email has been resent' };
+  return {
+    userId: user.id,
+    message: 'Verification email has been resent',
+  };
 }
 
 /**
@@ -194,7 +193,7 @@ async function forgotPassword({ username }) {
     ttlMinutes: 15,
   });
 
-  return { message: 'Check your email for reset password' };
+  return { email: user.email, message: 'Check your email for reset password' };
 }
 
 /**
@@ -275,11 +274,9 @@ async function issueTokens(user, isRefresh = false) {
   }
 
   return {
-    id: user.id,
-    username: user.username,
+    userId: user.id,
     accessToken,
     refreshToken,
-    email: user.email,
   };
 }
 

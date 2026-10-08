@@ -19,11 +19,7 @@ app.get('/api/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-  });
-});
+app.get('/api/health', require('./common/helpers/health'));
 
 app.use((req, res, next) => {
   req.logger = logger;

@@ -12,24 +12,21 @@ const AppError = require('../common/utils/AppError');
 async function register(req, res, next) {
   try {
     const { username, email } = req.body;
-    const payload = await service.register(req.body);
+    const { userId } = await service.register(req.body);
 
     success({
       statusCode: 201,
-      message: `User ${username} was registered`,
-      data: { payload },
+      message: `Registration successful, check ${email} to verify`,
       res,
     });
 
-    req.logger.info(
-      `User ${username} was added, email was sended to ${email}`,
-      {
-        user: username,
-        created: dateNow('iso'),
-      }
-    );
+    req.logger.info('User registered', {
+      userId,
+      username,
+      action: 'register',
+    });
   } catch (error) {
-    req.logger.error('Failed on register', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -45,20 +42,20 @@ async function verify(req, res, next) {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
 
-    const result = await service.verifyEmail(token);
+    const { userId, username } = await service.verifyEmail(token);
 
     success({
       message: 'Your email has verified',
-      data: { payload: result },
       res,
     });
 
-    req.logger.info(`User ${user.username} email was verified`, {
-      user: user.username,
-      verified_at: dateNow('iso'),
+    req.logger.info('An email was verified', {
+      userId,
+      username,
+      action: 'verify',
     });
   } catch (error) {
-    req.logger.error('Failed on verify email', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -72,19 +69,20 @@ async function verify(req, res, next) {
 async function resendVerify(req, res, next) {
   try {
     const { username } = req.body;
-    const { message } = await service.resendVerification(req.body);
+    const { userId, message } = await service.resendVerification(req.body);
 
     success({
       message,
       res,
     });
 
-    req.logger.info(`User ${username} resend verify email `, {
-      user: username,
-      send_at: dateNow('iso'),
+    req.logger.info('Email verify was resend', {
+      userId,
+      username,
+      action: 'resend',
     });
   } catch (error) {
-    req.logger.error('Failed on resend verify email', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -98,7 +96,7 @@ async function resendVerify(req, res, next) {
 async function login(req, res, next) {
   try {
     const { username } = req.body;
-    const { accessToken, refreshToken } = await service.login(req.body);
+    const { userId, accessToken, refreshToken } = await service.login(req.body);
 
     success({
       message: `Login successful, welcome ${username}`,
@@ -106,12 +104,13 @@ async function login(req, res, next) {
       res,
     });
 
-    req.logger.info(`User ${username} was login`, {
-      user: username,
-      login_at: dateNow('iso'),
+    req.logger.info('User was login', {
+      userId,
+      username,
+      action: 'login',
     });
   } catch (error) {
-    req.logger.error('Failed on login', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -127,19 +126,19 @@ async function forgotPass(req, res, next) {
     const { username } = req.body;
     if (!username) throw new AppError(400, 'No username has given');
 
-    const { message } = await service.forgotPassword({ username });
+    const { email, message } = await service.forgotPassword({ username });
 
     success({
       message,
       res,
     });
 
-    req.logger.info(`User ${username} was request to reset password`, {
-      user: username,
-      requested_at: dateNow('iso'),
+    req.logger.info('Request reset password', {
+      username,
+      email,
     });
   } catch (error) {
-    req.logger.error('Failed on forgot pass', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -155,22 +154,20 @@ async function resetPass(req, res, next) {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
     const { repeatPassword } = req.body;
-    const data = await service.resetPassword({
+    const { username } = await service.resetPassword({
       token,
       password: repeatPassword,
     });
 
     success({
       message: 'Your password was changed',
-      data: { payload: data },
       res,
     });
-    req.logger.info(`User ${data.username} has changed her/him password`, {
-      user: data.username,
-      changed_at: dateNow('iso'),
+    req.logger.info('User changed password', {
+      username,
     });
   } catch (error) {
-    req.logger.error('Failed on reset pass', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -198,12 +195,11 @@ async function token(req, res, next) {
       res,
     });
 
-    req.logger.info(`user ${username} request new accessToken`, {
+    req.logger.info('User request accessToken', {
       username,
-      requested_at: dateNow('iso'),
     });
   } catch (error) {
-    req.logger.error('Failed on token request', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -222,16 +218,15 @@ async function me(req, res, next) {
 
     success({
       message: `Onboard is ${username}`,
-      data: { payload: { username, role } },
+      // data: { payload: { username, role } },
       res,
     });
 
-    req.logger.info(`user ${username} request his/him profile`, {
-      user: username,
-      requested_at: dateNow('iso'),
+    req.logger.info('User request profile', {
+      username,
     });
   } catch (error) {
-    req.logger.error('Failed on profile request', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -263,7 +258,7 @@ async function logout(req, res, next) {
       logout_at: dateNow('iso'),
     });
   } catch (error) {
-    req.logger.error('Failed on logout', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }

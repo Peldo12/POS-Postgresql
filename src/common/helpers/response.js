@@ -2,7 +2,7 @@ function success(options) {
   const {
     statusCode = 200,
     message,
-    data = {},
+    data = null,
     pagination = null,
     res,
   } = options;

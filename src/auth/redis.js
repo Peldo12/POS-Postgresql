@@ -10,7 +10,7 @@ async function remove(key) {
   try {
     await client.del(key);
 
-    return await get(key);
+    return await client.get(key);
   } catch (error) {
     throw error;
   }

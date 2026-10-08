@@ -10,9 +10,10 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  if (body.pin) body.pin = '***REDACTED***';
-  if (body.password) body.password = '***REDACTED***';
-  if (body.repeatPassword) body.repeatPassword = '***REDACTED***';
+  const secured = ['pin', 'password', 'repeatPassword', 'refreshToken', 'otp'];
+  for (let key of Object.keys(body)) {
+    if (secured.includes(key)) body[key] = '***REDACTED***';
+  }
 
   req.logger.error(err?.message, {
     user: req.user?.id,

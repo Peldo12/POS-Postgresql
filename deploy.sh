@@ -4,10 +4,11 @@ set -e
 
 log() {
   text="$1"
-for ((i=0; i<${#text}; i++)); do
-  echo -ne "\e[5;32m${text:$i:1}\e[0m"
-  sleep 0.015
-done
+  for ((i=0; i<${#text}; i++)); do
+    echo -ne "\e[5;32m${text:$i:1}\e[0m"
+    sleep 0.015
+  done
+  echo ""
 }
 
 log "Open folder project"

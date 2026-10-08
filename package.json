@@ -17,13 +17,13 @@
     "winston": "^3.19.0"
   },
   "name": "pos-posgrest",
-  "version": "1.0.0",
+  "version": "0.0.2c",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js"
   },
-  "author": "",
+  "author": "kholi",
   "license": "ISC",
   "description": "",
   "devDependencies": {

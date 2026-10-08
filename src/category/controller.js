@@ -1,10 +1,3 @@
-const {
-  getCategories,
-  getCategoryIdentifier,
-  createCategory,
-  updateCategory,
-  removeOrRestoreCategory,
-} = require('./model');
 const service = require('./service');
 const success = require('../common/helpers/response');
 const dateNow = require('../common/helpers/date');
