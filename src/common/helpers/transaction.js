@@ -1,3 +1,6 @@
+const path = require('path');
+const { pool } = require(path.join(__dirname, '../../config/pool'));
+
 async function transaction(callback) {
   const client = await pool.connect();
   try {

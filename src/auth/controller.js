@@ -187,7 +187,7 @@ async function token(req, res, next) {
     const { refreshToken } = req.body;
     if (!refreshToken) throw new AppError(400, 'No token has given');
 
-    const { user, accessToken } = await service.refreshToken({
+    const { username, accessToken } = await service.refreshToken({
       userId: id,
       refreshToken,
     });
@@ -198,8 +198,8 @@ async function token(req, res, next) {
       res,
     });
 
-    req.logger.info(`user ${user.username} request new accessToken`, {
-      user: user.username,
+    req.logger.info(`user ${username} request new accessToken`, {
+      username,
       requested_at: dateNow('iso'),
     });
   } catch (error) {

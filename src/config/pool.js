@@ -1,6 +1,5 @@
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
-
+const hash = require('../common/helpers/hash');
 const dbUser = process.env.DB_USER;
 const dbPass = process.env.DB_PASSWORD;
 const dbHost = process.env.DB_HOST;
@@ -13,7 +12,7 @@ const pool = new Pool({
 
 async function initDB() {
   try {
-    const hashed = await bcrypt.hash(process.env.SUPER_PASS, 10);
+    const hashed = await hash.create(process.env.SUPER_PASS);
 
     pool.connect((err, client, release) => {
       if (err) {

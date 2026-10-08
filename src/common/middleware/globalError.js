@@ -1,6 +1,7 @@
 function errorHandler(err, req, res, next) {
-  // console.log(err.name)
-  // console.log(err.constructor.name)
+  if (res.headersSent) {
+    return next(err);
+  }
   const body = { ...req.body };
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(err.statusCode || 500).json({

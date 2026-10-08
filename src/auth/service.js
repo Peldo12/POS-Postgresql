@@ -241,7 +241,7 @@ async function refreshToken({ userId, refreshToken }) {
   if (user.token !== refreshToken)
     throw new AppError(403, 'Refresh token mismatch');
 
-  return issueTokens(user, true);
+  return await issueTokens(user, true);
 }
 
 /**
@@ -263,17 +263,20 @@ async function issueTokens(user, isRefresh = false) {
     type: 'refresh',
   });
 
-  await transaction(async (client) => {
-    return await model.createToken({
-      client,
-      id: user.id,
-      token: refreshToken,
-      type: 'REFRESH_TOKEN',
+  if (!isRefresh) {
+    await transaction(async (client) => {
+      return await model.createToken({
+        client,
+        id: user.id,
+        token: refreshToken,
+        type: 'REFRESH_TOKEN',
+      });
     });
-  });
+  }
 
   return {
     id: user.id,
+    username: user.username,
     accessToken,
     refreshToken,
     email: user.email,

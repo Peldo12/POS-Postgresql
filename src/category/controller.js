@@ -5,6 +5,7 @@ const {
   updateCategory,
   removeOrRestoreCategory,
 } = require('./model');
+const service = require('./service');
 const success = require('../common/helpers/response');
 const dateNow = require('../common/helpers/date');
 const AppError = require('../common/utils/AppError');
@@ -16,10 +17,10 @@ const AppError = require('../common/utils/AppError');
  */
 async function categories(req, res, next) {
   try {
-    const result = await getCategories({});
+    const categories = await service.categories({});
     success({
       message: 'Categories are loaded',
-      data: { categories: result },
+      data: { categories },
       res,
     });
     req.logger.info(`Categories loaded by ${req.user?.username}`, {
@@ -42,15 +43,15 @@ async function byId(req, res, next) {
     const { id } = req.params;
     if (isNaN(id)) throw new AppError(400, 'Invalid id');
 
-    const result = await getCategoryIdentifier({ id });
-    if (!result) throw new AppError(404, 'Category not found');
+    const categories = await service.categories({ id });
+    if (categories.length === 0) throw new AppError(404, 'Category not found');
 
     success({
       message: `Category id ${id}`,
-      data: { categories: [result] },
+      data: { categories },
       res,
     });
-    req.logger.info(`Category id loaded by ${req.user?.username}`, {
+    req.logger.info(`Category id requested by ${req.user?.username}`, {
       user: req.user.username,
       requested_at: dateNow('iso'),
     });
@@ -67,17 +68,12 @@ async function byId(req, res, next) {
  */
 async function create(req, res, next) {
   try {
-    const { name, description } = req.body;
-    const found = await getCategoryIdentifier({ name });
-    if (found) throw new AppError(400, `Category ${name} already exists`);
+    const { name } = req.body;
+    const result = await service.createOrUpdate(req.body);
 
-    const result = await createCategory({
-      name,
-      description,
-    });
     success({
       statusCode: 201,
-      message: `Category ${result[0].name} created`,
+      message: `Category ${name} created`,
       data: { categories: result },
       res,
     });
@@ -99,15 +95,16 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     const { id } = req.params;
-    const found = await getCategoryIdentifier({ id });
-    if (!found) throw new AppError(404, 'Category not found');
+    const { name } = req.body;
 
-    const { name, description } = req.body;
-
-    const result = await updateCategory({ name, description, id });
+    const categories = await service.createOrUpdate({
+      ...req.body,
+      id,
+      update: true,
+    });
     success({
       message: `Category ${name} updated`,
-      data: { categories: result },
+      data: { categories },
       res,
     });
     req.logger.info(`Category ${name} updated by ${req.user?.username}`, {
@@ -128,20 +125,18 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     const { id } = req.params;
-    const found = await getCategoryIdentifier({ id });
-    if (!found) throw new AppError(404, 'Category not found');
-
-    const result = await removeOrRestoreCategory({
+    const categories = await service.createOrUpdate({
       id,
       value: dateNow(),
+      update: true,
     });
     success({
-      message: `Category ${result.name} deleted`,
-      data: { categories: [result] },
+      message: `Category ${categories.name} deleted`,
+      data: { categories },
       res,
     });
     req.logger.info(
-      `Category ${result.name} removed by ${req.user?.username}`,
+      `Category ${categories.name} removed by ${req.user?.username}`,
       {
         user: req.user.username,
         removed_at: dateNow('iso'),
@@ -161,17 +156,19 @@ async function remove(req, res, next) {
 async function restore(req, res, next) {
   try {
     const { id } = req.params;
-    const found = await getCategoryIdentifier({ id });
-    if (!found) throw new AppError(404, 'Category not found');
+    const categories = await service.createOrUpdate({
+      id,
+      value: null,
+      update: true,
+    });
 
-    const result = await removeOrRestoreCategory({ id });
     success({
-      message: `Category ${result.name} restored`,
-      data: { categories: [result] },
+      message: `Category ${categories.name} restored`,
+      data: { categories },
       res,
     });
     req.logger.info(
-      `Category ${result.name} restored by ${req.user?.username}`,
+      `Category ${categories.name} restored by ${req.user?.username}`,
       {
         user: req.user.username,
         restored_at: dateNow('iso'),
