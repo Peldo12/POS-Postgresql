@@ -126,7 +126,7 @@ async function forgotPass(req, res, next) {
     const { username } = req.body;
     if (!username) throw new AppError(400, 'No username has given');
 
-    const { email, message } = await service.forgotPassword({ username });
+    const { userId, message } = await service.forgotPassword({ username });
 
     success({
       message,
@@ -134,8 +134,9 @@ async function forgotPass(req, res, next) {
     });
 
     req.logger.info('Request reset password', {
+      userId,
       username,
-      email,
+      action: 'forgot',
     });
   } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
@@ -154,7 +155,7 @@ async function resetPass(req, res, next) {
     const { token } = req.query;
     if (!token) throw new AppError(400, 'Token is required');
     const { repeatPassword } = req.body;
-    const { username } = await service.resetPassword({
+    const { userId, username } = await service.resetPassword({
       token,
       password: repeatPassword,
     });
@@ -164,7 +165,9 @@ async function resetPass(req, res, next) {
       res,
     });
     req.logger.info('User changed password', {
+      userId,
       username,
+      action: 'reset',
     });
   } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
@@ -184,7 +187,7 @@ async function token(req, res, next) {
     const { refreshToken } = req.body;
     if (!refreshToken) throw new AppError(400, 'No token has given');
 
-    const { username, accessToken } = await service.refreshToken({
+    const { userId, username, accessToken } = await service.refreshToken({
       userId: id,
       refreshToken,
     });
@@ -196,7 +199,9 @@ async function token(req, res, next) {
     });
 
     req.logger.info('User request accessToken', {
+      userId,
       username,
+      action: 'refresh',
     });
   } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
@@ -214,16 +219,17 @@ async function me(req, res, next) {
   try {
     const { id } = req.user;
     const { user } = await service.getById({ userId: id });
-    const { username, role } = user;
+    const { username } = user;
 
     success({
-      message: `Onboard is ${username}`,
-      // data: { payload: { username, role } },
+      message: 'User still onboard',
       res,
     });
 
     req.logger.info('User request profile', {
+      userId: id,
       username,
+      action: 'profile',
     });
   } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
@@ -242,7 +248,7 @@ async function logout(req, res, next) {
     const { id } = req.user;
     await service.getById({ userId: id });
 
-    const { user_id, username } = await service.createToken({
+    const { username } = await service.createToken({
       id,
       token: null,
       type: 'REFRESH_TOKEN',
@@ -253,9 +259,10 @@ async function logout(req, res, next) {
       res,
     });
 
-    req.logger.info(`user ${user_id} has logout`, {
-      user: username,
-      logout_at: dateNow('iso'),
+    req.logger.info('User logout', {
+      userId: id,
+      username,
+      action: 'logout',
     });
   } catch (error) {
     req.logger.error(error.message, { stack: error.stack });

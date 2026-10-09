@@ -1,4 +1,3 @@
-const generateToken = require('../common/helpers/token');
 const generateCrypto = require('../common/helpers/crypto');
 const dateNow = require('../common/helpers/date');
 

@@ -3,7 +3,7 @@ const redis = require('./redis');
 const dateNow = require('../common/helpers/date');
 const sendEmail = require('../common/helpers/email');
 const hash = require('../common/helpers/hash');
-const generateToken = require('../common/helpers/token');
+const generateJWT = require('../common/helpers/jwt');
 const transaction = require('../common/helpers/transaction');
 const generateCrypto = require('../common/helpers/crypto');
 const template = require('../common/utils/template.js');
@@ -193,7 +193,7 @@ async function forgotPassword({ username }) {
     ttlMinutes: 15,
   });
 
-  return { email: user.email, message: 'Check your email for reset password' };
+  return { userId: user.id, message: 'Check your email for reset password' };
 }
 
 /**
@@ -224,7 +224,7 @@ async function resetPassword({ token, password }) {
 
   await removeToken(key);
 
-  return updatedUser;
+  return { userId: updatedUser.id, username: updatedUser.username };
 }
 
 /**
@@ -248,16 +248,15 @@ async function refreshToken({ userId, refreshToken }) {
  */
 async function issueTokens(user, isRefresh = false) {
   const payload = {
-    id: user.id,
+    userId: user.id,
     username: user.username,
-    email_verified_at: user.email_verified_at,
     role: user.role,
     login_at: isRefresh ? user.last_login_at : dateNow(),
     generated_at: dateNow('iso'),
   };
 
-  const accessToken = generateToken({ payload });
-  const refreshToken = generateToken({
+  const accessToken = generateJWT({ payload });
+  const refreshToken = generateJWT({
     payload,
     type: 'refresh',
   });

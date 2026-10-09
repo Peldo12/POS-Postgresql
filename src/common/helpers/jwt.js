@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-function generateToken({ payload, type = 'access' }) {
+function generateJWT({ payload, type = 'access' }) {
   const config = {
     access: {
       secret: process.env.ACCESS_SECRET,
@@ -19,4 +19,4 @@ function generateToken({ payload, type = 'access' }) {
   return jwt.sign(payload, secret, { expiresIn });
 }
 
-module.exports = generateToken;
+module.exports = generateJWT;

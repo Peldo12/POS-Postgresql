@@ -10,18 +10,22 @@ const AppError = require('../common/utils/AppError');
  */
 async function categories(req, res, next) {
   try {
-    const categories = await service.categories({});
+    const { userId, username } = req.user;
+    const categories = await service.categories({ key: 'categories:all' });
     success({
       message: 'Categories are loaded',
       data: { categories },
       res,
     });
-    req.logger.info(`Categories loaded by ${req.user?.username}`, {
-      user: req.user.username,
-      requested_at: dateNow('iso'),
+    req.logger.info('Categories loaded', {
+      userId,
+      username,
+      resource: 'categories',
+      resourceId: 'all',
+      action: 'load',
     });
   } catch (e) {
-    req.logger.error('Failed onload categories load', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
@@ -33,10 +37,15 @@ async function categories(req, res, next) {
  */
 async function byId(req, res, next) {
   try {
+    const { userId, username } = req.user;
+
     const { id } = req.params;
     if (isNaN(id)) throw new AppError(400, 'Invalid id');
 
-    const categories = await service.categories({ id });
+    const categories = await service.categories({
+      id,
+      key: `categories:${id}`,
+    });
     if (categories.length === 0) throw new AppError(404, 'Category not found');
 
     success({
@@ -44,12 +53,15 @@ async function byId(req, res, next) {
       data: { categories },
       res,
     });
-    req.logger.info(`Category id requested by ${req.user?.username}`, {
-      user: req.user.username,
-      requested_at: dateNow('iso'),
+    req.logger.info('Category id loaded', {
+      userId,
+      username,
+      resource: 'category',
+      resourceId: id,
+      action: 'load',
     });
   } catch (e) {
-    req.logger.error('Failed onload category id', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
@@ -61,6 +73,8 @@ async function byId(req, res, next) {
  */
 async function create(req, res, next) {
   try {
+    const { userId, username } = req.user;
+
     const { name } = req.body;
     const result = await service.createOrUpdate(req.body);
 
@@ -70,12 +84,15 @@ async function create(req, res, next) {
       data: { categories: result },
       res,
     });
-    req.logger.info(`Category ${name} created by ${req.user?.username}`, {
-      user: req.user.username,
-      created_at: dateNow('iso'),
+    req.logger.info('Category created', {
+      userId,
+      username,
+      resource: 'id',
+      resourceId: result[0].id,
+      action: 'create',
     });
   } catch (e) {
-    req.logger.error('Failed on create category', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
@@ -89,23 +106,28 @@ async function update(req, res, next) {
   try {
     const { id } = req.params;
     const { name } = req.body;
+    const { userId, username } = req.user;
 
     const categories = await service.createOrUpdate({
       ...req.body,
       id,
       update: true,
+      key: `categories:${id}`,
     });
     success({
       message: `Category ${name} updated`,
       data: { categories },
       res,
     });
-    req.logger.info(`Category ${name} updated by ${req.user?.username}`, {
-      user: req.user.username,
-      updated_at: dateNow('iso'),
+    req.logger.info('Category updated', {
+      userId,
+      username,
+      resource: 'category',
+      resourceId: id,
+      action: 'update',
     });
   } catch (e) {
-    req.logger.error('Failed on update category', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
@@ -117,26 +139,29 @@ async function update(req, res, next) {
  */
 async function remove(req, res, next) {
   try {
+    const { userId, username } = req.user;
+
     const { id } = req.params;
     const categories = await service.createOrUpdate({
       id,
       value: dateNow(),
       update: true,
+      key: `categories:${id}`,
     });
     success({
       message: `Category ${categories.name} deleted`,
       data: { categories },
       res,
     });
-    req.logger.info(
-      `Category ${categories.name} removed by ${req.user?.username}`,
-      {
-        user: req.user.username,
-        removed_at: dateNow('iso'),
-      }
-    );
+    req.logger.info('Category removed', {
+      userId,
+      username,
+      resource: 'category',
+      resourceId: id,
+      action: 'remove',
+    });
   } catch (e) {
-    req.logger.error('Failed on remove category', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
@@ -148,11 +173,14 @@ async function remove(req, res, next) {
  */
 async function restore(req, res, next) {
   try {
+    const { userId, username } = req.user;
+
     const { id } = req.params;
     const categories = await service.createOrUpdate({
       id,
       value: null,
       update: true,
+      key: `categories:${id}`,
     });
 
     success({
@@ -160,15 +188,15 @@ async function restore(req, res, next) {
       data: { categories },
       res,
     });
-    req.logger.info(
-      `Category ${categories.name} restored by ${req.user?.username}`,
-      {
-        user: req.user.username,
-        restored_at: dateNow('iso'),
-      }
-    );
+    req.logger.info('Category removed', {
+      userId,
+      username,
+      resource: 'category',
+      resourceId: id,
+      action: 'restore',
+    });
   } catch (e) {
-    req.logger.error('Failed on restore category', { error: e });
+    req.logger.error(error.message, { stack: error.stack });
     next(e);
   }
 }
