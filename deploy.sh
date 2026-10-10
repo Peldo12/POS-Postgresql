@@ -51,6 +51,7 @@ wait_health() {
 rollback() {
   restore_version
 
+  CURRENT_VERSION="$OLD_VERSION"
   log "Restarting with $OLD_VERSION image"
   if ! start_compose; then
     log "Rollback run failed !!"
@@ -68,7 +69,7 @@ finish_up() {
   log "Prune image"
   docker image prune -f
   
-  log "Deploy version: $NEW_VERSION"
+  log "Deploy version: $CURRENT_VERSION"
 }
 trap finish_up EXIT
 
@@ -134,7 +135,6 @@ if ! wait_health; then
     log "Automatic rollback failed !!"
   fi
 
+  CURRENT_VERSION="NEW_VERSION"
   exit 1
 fi
-  
-finish_up
