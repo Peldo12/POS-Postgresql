@@ -36,10 +36,9 @@ rollback_compose() {
 rollback() {
   restore_version
 
-  if ! rollback_compose; then
-    log "Rollback failed !!"
-    exit 1
-  fi
+  rollback_compose
+
+  wait_health
 }
 
 wait_health() {
