@@ -15,6 +15,8 @@ set_version() {
 }
 
 restore_version() {
+  CURRENT_VERSION="$OLD_VERSION"
+
   log "Restore APP_VERSION to $OLD_VERSION"
   
   if ! set_version "$OLD_VERSION"; then
@@ -51,7 +53,6 @@ wait_health() {
 rollback() {
   restore_version
 
-  CURRENT_VERSION="$OLD_VERSION"
   log "Restarting with $OLD_VERSION image"
   if ! start_compose; then
     log "Rollback run failed !!"
