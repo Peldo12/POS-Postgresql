@@ -118,7 +118,7 @@ fi
 if ! start_compose; then
   log "Deployment failed !!"
   
-  if ! rollback;
+  if ! rollback; then
     log "Automatic rollback failed !!"
   fi
   
