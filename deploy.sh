@@ -76,7 +76,7 @@ rollback() {
 
 finish_up() {
   log "Prune image"
-  if PRUNE_IMAGE; then
+  if $PRUNE_IMAGE; then
     docker image prune -f
   fi
   
@@ -152,4 +152,4 @@ if ! wait_health; then
   exit 1
 fi
 
-caller NEW_VERSION "SUCCESS" "ALL GOOD"
+caller "$NEW_VERSION" "SUCCESS" "ALL GOOD"
