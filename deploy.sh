@@ -2,6 +2,10 @@
 
 set -Eeuo pipefail
 
+PRUNE_IMAGE=false
+STATUS="FAILED"
+REASON="Unexpected error"
+
 # ===============
 # function inline
 # ===============
@@ -14,10 +18,13 @@ set_version() {
   sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
 }
 
+caller() {
+  CURRENT_VERSION="${1-}"
+  STATUS="${2-}"
+  REASON="${3-}"
+}
+
 restore_version() {
-  CURRENT_VERSION="$OLD_VERSION"
-  STATUS="ABORT DEPLOY"
-  REASON="Failed to start $NEW_VERSION image"
 
   log "Restore APP_VERSION to $OLD_VERSION"
   
@@ -58,7 +65,6 @@ rollback() {
   log "Restarting with $OLD_VERSION image"
   if ! start_compose; then
     log "Rollback run failed !!"
-    REASON="Failed configuration $OLD_VERSION image"
     return 1
   fi
 
@@ -70,7 +76,9 @@ rollback() {
 
 finish_up() {
   log "Prune image"
-  docker image prune -f
+  if PRUNE_IMAGE; then
+    docker image prune -f
+  fi
   
   log "Deploy version: ${CURRENT_VERSION-}"
   log "Status: ${STATUS-}"
@@ -85,7 +93,7 @@ trap finish_up EXIT
 log "Open folder project"
 cd /opt/POS-Postgresql
 
-if [ -z "${1-}" ]; then
+if [[ -z "${1-}" ]]; then
   read -p "==> Input version : " NEW_VERSION
 else
   NEW_VERSION="$1"
@@ -100,6 +108,7 @@ if ! OLD_VERSION=$(awk -F= '/^APP_VERSION/ {print $2}' .env); then
   log "APP_VERSION not found in .env"
   exit 1
 fi
+CURRENT_VERSION="$OLD_VERSION"
 
 if ! set_version "$NEW_VERSION"; then
   log "Failed to update APP_VERSION"
@@ -111,6 +120,7 @@ log "Target version: $NEW_VERSION"
 log "Backup Database ..."
 if ! run_backup; then
   log "Database backup failed !!"
+  exit 1
 fi
 
 log "Compose ... "
@@ -141,5 +151,5 @@ if ! wait_health; then
   fi
   exit 1
 fi
-CURRENT_VERSION="NEW_VERSION"
-STATUS="SUCCESS DEPLOY"
+
+caller NEW_VERSION "SUCCESS" "ALL GOOD"
