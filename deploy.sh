@@ -73,7 +73,7 @@ finish_up() {
   docker image prune -f
   
   log "Deploy version: ${CURRENT_VERSION-}"
-  log "Status: $STATUS"
+  log "Status: ${STATUS-}"
   log "Reason: ${REASON-}"
 }
 trap finish_up EXIT
@@ -139,8 +139,7 @@ if ! wait_health; then
   else
     log "Automatic rollback failed !!"
   fi
-
-  CURRENT_VERSION="NEW_VERSION"
-  STATUS="SUCCESS DEPLOY"
   exit 1
 fi
+CURRENT_VERSION="NEW_VERSION"
+STATUS="SUCCESS DEPLOY"
