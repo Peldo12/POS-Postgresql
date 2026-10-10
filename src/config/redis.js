@@ -10,7 +10,7 @@ client.on('error', (err) => {
 async function initRedis() {
   try {
     await client.connect();
-    console.log('Connected to Redis');
+    console.log(`${new Date().toLocaleTimeString()}: Connected to Redis`);
   } catch (err) {
     console.error('Failed to connect Redis:', err);
     throw err;

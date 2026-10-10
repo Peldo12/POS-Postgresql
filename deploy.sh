@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -Eeuo pipefail
 
 log() {
   text="$1"
@@ -25,7 +25,7 @@ if [[ -z "$NEW_VERSION" ]]; then
   exit 1
 fi
 
-if ! OLD_VERSION=$(grep '^APP_VERSION=' .env | cut -d '=' -f2); then
+if ! OLD_VERSION=$(awk -F= '/^APP_VERSION/ {print $2}' .env); then
   log "APP_VERSION not found in .env"
   exit 1
 fi
@@ -34,22 +34,33 @@ set_version() {
   sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
 }
 
+restore_version() {
+  log "Restore APP_VERSION to $OLD_VERSION"
+
+  if ! set_version "$OLD_VERSION"; then
+    log "Failed to restore APP_VERSION"
+    exit 1
+  fi
+}
+
+run_backup() {
+  sudo /usr/local/bin/pos-db-backup.sh
+}
+
 if ! set_version "$NEW_VERSION"; then
   log "Failed to update APP_VERSION"
   exit 1
 fi
 
 log "Target version: $NEW_VERSION"
+log "Backup Database ..."
+run_backup
+
 log "Compose ... "
 log "Pull image ... "
 if ! docker compose pull ; then
   log "Pull failed !!"
-  log "Restore env ..."
-  
-  if ! set_version "$OLD_VERSION"; then
-    log "Failed to restore APP_VERSION"
-  fi
-  
+  restore_version
   exit 1
 fi
 
@@ -68,12 +79,10 @@ do
   if (( COUNT >= MAX_RETRY )); then
     log "API failed to become healthy after $MAX_RETRY attempts"
     exit 1
-  else
-    log "API is healthy"
   fi
-  
   sleep 1
 done
+log "API is healthy"
 
 log "Prune image"
 docker image prune -f

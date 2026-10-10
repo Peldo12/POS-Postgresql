@@ -18,7 +18,9 @@ async function initDB() {
       if (err) {
         return console.error('Failed, on connect database:', err.stack);
       }
-      console.log(`Connected to server PostgreSQL ${process.env.DB_HOST}`);
+      console.log(
+        `${new Date().toLocaleTimeString()}: Connected to PostgreSQL`
+      );
       release();
     });
 
@@ -43,7 +45,6 @@ async function initDB() {
     password TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP DEFAULT NULL,
     deleted_at TIMESTAMP DEFAULT NULL
     )`);
 
