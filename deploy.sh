@@ -67,6 +67,7 @@ fi
 log "Start container ..."
 if ! docker compose up -d; then
   log "Deployment failed !!"
+  restore_version
   exit 1
 fi
 
