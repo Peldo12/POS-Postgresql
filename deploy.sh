@@ -69,7 +69,7 @@ finish_up() {
   log "Prune image"
   docker image prune -f
   
-  log "Deploy version: $CURRENT_VERSION"
+  log "Deploy version: ${CURRENT_VERSION-}"
 }
 trap finish_up EXIT
 
