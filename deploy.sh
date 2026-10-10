@@ -62,6 +62,7 @@ rollback() {
     return 1
   fi
 }
+trap rollback ERR
 
 finish_up() {
   log "Prune image"
@@ -69,6 +70,7 @@ finish_up() {
   
   log "Deploy version: $NEW_VERSION"
 }
+trap finish_up EXIT
 
 # ========
 # main run
@@ -79,9 +81,9 @@ cd /opt/POS-Postgresql
 
 if [[ -z "$1" ]]; then
   read -p "==> Input version : " NEW_VERSION
-else
-  NEW_VERSION="$1"
 fi
+
+NEW_VERSION="$1"
 
 if [[ -z "$NEW_VERSION" ]]; then
   log "No version given, exit !!"
