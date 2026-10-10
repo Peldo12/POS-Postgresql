@@ -16,6 +16,8 @@ set_version() {
 
 restore_version() {
   CURRENT_VERSION="$OLD_VERSION"
+  STATUS="ABORT DEPLOY"
+  REASON="Failed to start $NEW_VERSION image"
 
   log "Restore APP_VERSION to $OLD_VERSION"
   
@@ -56,6 +58,7 @@ rollback() {
   log "Restarting with $OLD_VERSION image"
   if ! start_compose; then
     log "Rollback run failed !!"
+    REASON="Failed configuration $OLD_VERSION image"
     return 1
   fi
 
@@ -64,13 +67,14 @@ rollback() {
     return 1
   fi
 }
-trap rollback ERR
 
 finish_up() {
   log "Prune image"
   docker image prune -f
   
   log "Deploy version: ${CURRENT_VERSION-}"
+  log "Status: $STATUS"
+  log "Reason: ${REASON-}"
 }
 trap finish_up EXIT
 
@@ -137,5 +141,6 @@ if ! wait_health; then
   fi
 
   CURRENT_VERSION="NEW_VERSION"
+  STATUS="SUCCESS DEPLOY"
   exit 1
 fi
