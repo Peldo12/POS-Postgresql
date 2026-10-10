@@ -33,14 +33,6 @@ rollback_compose() {
   start_compose
 }
 
-rollback() {
-  restore_version
-
-  rollback_compose
-
-  wait_health
-}
-
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
@@ -55,6 +47,24 @@ wait_health() {
     sleep 1
   done
   log "API is healthy"
+}
+
+rollback() {
+  restore_version
+
+  if ! rollback_compose; then
+    log "Rollback run failed !!"
+    exit 1
+  fi
+
+  wait_health
+}
+
+finish_up() {
+  log "Prune image"
+  docker image prune -f
+  
+  log "Deploy version: $NEW_VERSION"
 }
 
 log "Open folder project"
@@ -108,8 +118,4 @@ if ! wait_health; then
   exit 1
 fi
   
-
-log "Prune image"
-docker image prune -f
-
-log "Deploy version: $NEW_VERSION"
+finish_up
