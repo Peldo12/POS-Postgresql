@@ -103,7 +103,7 @@ fi
 log "Target version: $NEW_VERSION"
 
 log "Backup Database ..."
-if ! run_backup;
+if ! run_backup; then
   log "Database backup failed !!"
 fi
 
