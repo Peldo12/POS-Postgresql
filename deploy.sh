@@ -2,6 +2,10 @@
 
 set -Eeuo pipefail
 
+# ===============
+# function inline
+# ===============
+
 log() {
   echo "==> $1"
 }
@@ -28,11 +32,6 @@ start_compose() {
   docker compose up -d
 }
 
-rollback_compose() {
-  log "Restarting with $OLD_VERSION image"
-  start_compose
-}
-
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
@@ -52,12 +51,16 @@ wait_health() {
 rollback() {
   restore_version
 
-  if ! rollback_compose; then
+  log "Restarting with $OLD_VERSION image"
+  if ! start_compose; then
     log "Rollback run failed !!"
-    exit 1
+    return 1
   fi
 
-  wait_health
+  if ! wait_health; then
+    log "Rollback health check failed !!"
+    return 1
+  fi
 }
 
 finish_up() {
@@ -66,6 +69,10 @@ finish_up() {
   
   log "Deploy version: $NEW_VERSION"
 }
+
+# ========
+# main run
+# ========
 
 log "Open folder project"
 cd /opt/POS-Postgresql
@@ -92,8 +99,11 @@ if ! set_version "$NEW_VERSION"; then
 fi
 
 log "Target version: $NEW_VERSION"
+
 log "Backup Database ..."
-run_backup
+if ! run_backup;
+  log "Database backup failed !!"
+fi
 
 log "Compose ... "
 log "Pull image ... "
@@ -105,16 +115,23 @@ fi
 
 if ! start_compose; then
   log "Deployment failed !!"
-  rollback
+  
+  if ! rollback;
+    log "Automatic rollback failed !!"
+  fi
+  
   exit 1
 fi
 
 if ! wait_health; then
   log "Health check failed"
 
-  rollback
+  if rollback; then
+    log "Rollback success"
+  else
+    log "Automatic rollback failed !!"
+  fi
 
-  log "Rollback success"
   exit 1
 fi
   
