@@ -139,28 +139,12 @@ log "Pull image ... "
 STEP="Pull image"
 docker compose pull
 
-if ! start_compose; then
-  log "Deployment $NEW_VERSION image failed !!"
-  
-  if rollback; then
-    set_status "ROLLBACK" "Deployment failed, Restored $OLD_VERSION"
-  else
-    set_status "FAILED" "Failed to rollback version $OLD_VERSION"
-  fi
-  
-  exit 1
-fi
+STEP="Start compose"
+start_compose
 
-if ! wait_health; then
-  log "Health check failed"
+STEP="Health check"
+wait_health
 
-  if rollback; then
-    set_status "ROLLBACK" "Health-check failed, Restored $OLD_VERSION"
-  else
-    set_status "FAILED" "Rollback failed after health check failure"
-  fi
-  exit 1
-fi
 CURRENT_VERSION="$NEW_VERSION"
 PRUNE_IMAGE=true
 set_status "SUCCESS" "Deployment successful"
