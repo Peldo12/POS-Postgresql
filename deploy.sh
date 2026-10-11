@@ -94,37 +94,44 @@ wait_health() {
 
 
 rollback() {
+  ROLLBACKING=true
   restore_version
 
   log "Restarting old version $OLD_VERSION"
-  start_compose
 
-  wait_health
+  if ! start_compose; then
+    log "Rollback compose failed"
+    return 1
+  fi
+
+  if ! wait_health; then
+    log "Rollback health failed"
+    return 1
+  fi
+
+  ROLLBACKING=false
+  return 0
 }
 
 error_handler() {
-    local code=$?
+  local code=$?
 
-    trap - ERR
+  if [[ "$ROLLBACKING" == true ]]; then
+    log "Rollback failed"
+    exit 1
+  fi
+  trap - ERR
 
-    log "Deployment failed"
-    log "Function: ${FUNCNAME[1]}"
-    log "Line: ${BASH_LINENO[0]}"
-    log "Failed command: $BASH_COMMAND"
-    log "Exit code: $code"
-    
-    case "$CURRENT_STAGE" in
-      Deploy|Health)
-        rollback
-        ;;
-      *)
-        log "Rollback skipped"
-        ;;
-      esac
-      
-    set_status "ROLLBACK" "Deployment failed, Restore $OLD_VERSION"
+  log "Error at stage: $CURRENT_STAGE"
+  log "Command: $BASH_COMMAND"
 
-    exit "$code"
+  case "$CURRENT_STAGE" in
+    Deploy|Health)
+      rollback
+      ;;
+  esac
+
+  exit "$code"
 }
 trap error_handler ERR
 
