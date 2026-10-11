@@ -6,6 +6,7 @@ PRUNE_IMAGE=false
 STATUS="FAILED"
 REASON="Unexpected error"
 LOCK_FILE="/tmp/deploy.lock"
+ENV_FILE="/etc/pos/production.env"
 
 # ===============
 # function inline
@@ -62,14 +63,14 @@ run_backup() {
 
 start_compose() {
   log "Start container ..."
-  docker compose --env-file /etc/pos/production.env up -d
+  docker compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate backend
 }
 
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
 
-  if ! CONTAINER_ID=$(docker compose ps -q backend); then
+  if ! CONTAINER_ID=$(docker compose ps --env-file "$ENV_FILE" -q backend); then
     log "Failed to get backend container id"
     return 1
   fi
@@ -125,7 +126,7 @@ rollback() {
 
   log "Rollback backend to $OLD_VERSION"
 
-  if ! docker compose up -d --no-deps --force-recreate backend; then
+  if ! start_compose; then
     log "Rollback compose failed"
     return 1
   fi
@@ -250,7 +251,7 @@ CURRENT_STAGE="Backup"
 run_backup
 
 CURRENT_STAGE="Pull"
-docker compose --env-file /etc/pos/production.env pull
+docker compose --env-file "$ENV_FILE" pull
 
 CURRENT_STAGE="Deploy"
 start_compose
