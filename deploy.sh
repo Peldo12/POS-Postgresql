@@ -5,6 +5,7 @@ set -Eeuo pipefail
 PRUNE_IMAGE=false
 STATUS="FAILED"
 REASON="Unexpected error"
+LOCK_FILE="/tmp/deploy.lock"
 
 # ===============
 # function inline
@@ -148,7 +149,7 @@ error_handler() {
   fi
   trap - ERR
 
-  log "Error at stage: $CURRENT_STAGE"
+  log "Error at stage: ${CURRENT_STAGE-}"
   log "Command: $BASH_COMMAND"
   log "Line: ${BASH_LINENO[0]}"
 
