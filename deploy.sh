@@ -46,7 +46,7 @@ start_compose() {
 
 wait_health() {
   local COUNT=0
-  local MAX_RETRY=10
+  local MAX_RETRY=15
 
   if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
@@ -89,7 +89,7 @@ wait_health() {
         ;;
     esac
 
-    sleep 1
+    sleep 2
   done
 
   log "API health timeout after $MAX_RETRY attempts"
@@ -130,17 +130,27 @@ error_handler() {
   log "Error at stage: $CURRENT_STAGE"
   log "Command: $BASH_COMMAND"
   log "Line: ${BASH_LINENO[0]}"
-
   case "$CURRENT_STAGE" in
-    Deploy|Health)
-      rollback
+    Deploy)
+      if rollback; then
+        set_status "ROLLBACK" "Deploy failed, restored $OLD_VERSION"
+      else
+        set_status "FAILED" "Rollback failed"
+      fi
       ;;
-      
+  
+    Health)
+      if rollback; then
+        set_status "ROLLBACK" "Health failed, restored $OLD_VERSION"
+      else
+        set_status "FAILED" "Rollback health failed"
+      fi
+      ;;
     Pull)
       restore_version
       ;;
   esac
-
+  
   exit "$code"
 }
 trap error_handler ERR
