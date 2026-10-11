@@ -10,6 +10,19 @@ REASON="Unexpected error"
 # function inline
 # ===============
 
+acquire_lock() {
+  if [[ -e "$LOCK_FILE" ]]; then
+    log "Another deployment is running"
+    exit 1
+  fi
+
+  echo "$$" > "$LOCK_FILE"
+}
+
+release_lock() {
+  rm -f "$LOCK_FILE"
+}
+
 log() {
   echo "==> $1"
 }
@@ -182,13 +195,22 @@ finish_up() {
   log "Stage: ${CURRENT_STAGE-}"
   log "Reason: ${REASON-}"
 }
-trap finish_up EXIT
+
+cleanup() {
+  release_lock
+  finish_up
+}
+
+trap cleanup EXIT
 
 # ========
 # main run
 # ========
 
 log "Open folder project"
+
+acquire_lock
+
 CURRENT_STAGE="Init"
 cd /opt/POS-Postgresql
 
