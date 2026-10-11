@@ -67,7 +67,7 @@ start_compose() {
 
 wait_health() {
   local COUNT=0
-  local MAX_RETRY=45
+  local MAX_RETRY=30
 
   if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
@@ -110,7 +110,7 @@ wait_health() {
         ;;
     esac
 
-    sleep 2
+    sleep 3
   done
 
   log "API health timeout after $MAX_RETRY attempts"
