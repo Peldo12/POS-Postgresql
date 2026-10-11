@@ -62,7 +62,7 @@ run_backup() {
 
 start_compose() {
   log "Start container ..."
-  docker compose up -d
+  docker compose --env-file /etc/pos/production.env up -d
 }
 
 wait_health() {
@@ -250,7 +250,7 @@ CURRENT_STAGE="Backup"
 run_backup
 
 CURRENT_STAGE="Pull"
-docker compose pull
+docker compose --env-file /etc/pos/production.env pull
 
 CURRENT_STAGE="Deploy"
 start_compose
