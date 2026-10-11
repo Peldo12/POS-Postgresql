@@ -47,7 +47,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - .env
+      - /etc/pos/production.env
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
       interval: 30s

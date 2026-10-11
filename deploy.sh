@@ -6,6 +6,7 @@ PRUNE_IMAGE=false
 STATUS="FAILED"
 REASON="Unexpected error"
 LOCK_FILE="/tmp/deploy.lock"
+ENV_FILE="/etc/pos/production.env"
 
 # ===============
 # function inline
@@ -36,7 +37,7 @@ log() {
 }
 
 set_version() {
-  sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
+  sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" "$ENV_FILE"
 }
 
 set_status() {
