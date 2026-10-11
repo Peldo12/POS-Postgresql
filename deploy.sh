@@ -125,6 +125,7 @@ error_handler() {
 
   log "Error at stage: $CURRENT_STAGE"
   log "Command: $BASH_COMMAND"
+  log "Line: ${BASH_LINENO[1]}"
 
   case "$CURRENT_STAGE" in
     Deploy|Health)
