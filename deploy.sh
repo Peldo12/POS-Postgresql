@@ -68,7 +68,7 @@ rollback() {
   fi
 
   if ! wait_health; then
-    log "Rollback health check failed !!"
+    set_status "FAILED" "Rollback health check failed !!"
     return 1
   fi
 }
@@ -146,9 +146,9 @@ if ! wait_health; then
   log "Health check failed"
 
   if rollback; then
-    log "Rollback success"
+    set_status "ROLLBACK" "Deployment failed, Restored $OLD_VERSION"
   else
-    log "Automatic rollback failed !!"
+    set_status "FAILED" "Failed to rollback version $OLD_VERSION"
   fi
   exit 1
 fi
