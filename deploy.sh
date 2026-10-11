@@ -70,7 +70,7 @@ wait_health() {
   local COUNT=0
   local MAX_RETRY=30
 
-  if ! CONTAINER_ID=$(docker compose ps --env-file "$ENV_FILE" -q backend); then
+  if ! CONTAINER_ID=$(docker compose --env-file "$ENV_FILE" ps -q backend); then
     log "Failed to get backend container id"
     return 1
   fi
@@ -143,9 +143,7 @@ rollback() {
 show_container_logs() {
   log "Last backend logs ..."
 
-  docker logs \
-    --tail 50 \
-    pos-backend-1 || true
+  docker logs --tail 50 pos-backend-1 || true
 }
 
 error_handler() {
