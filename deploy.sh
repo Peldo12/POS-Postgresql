@@ -44,9 +44,14 @@ start_compose() {
 
 wait_health() {
   local COUNT=0
-  local MAX_RETRY=30
+  local MAX_RETRY=15
 
   CONTAINER_ID=$(docker compose ps -q backend)
+
+  if [[ -z "$CONTAINER_ID" ]]; then
+    log "Backend container not found"
+    return 1
+  fi
 
   while (( COUNT < MAX_RETRY ))
   do
@@ -81,28 +86,20 @@ wait_health() {
         ;;
     esac
 
-    sleep 1
+    sleep 2
   done
 
   return 1
 }
 
-verify_rollback() {
-  wait_health
-}
 
 rollback() {
-  log "Failed to deploy $NEW_VERSION image, Restore $OLD_VERSION"
   restore_version
 
+  log "Restarting old version $OLD_VERSION"
   start_compose
 
-  verify_rollback
-}
-
-deploy_and_verify() {
-    start_compose
-    wait_health
+  wait_health
 }
 
 error_handler() {
@@ -115,34 +112,16 @@ error_handler() {
     log "Line: ${BASH_LINENO[0]}"
     log "Failed command: $BASH_COMMAND"
     log "Exit code: $code"
+    
     case "$CURRENT_STAGE" in
-      Init)
-        log "Failed to open project folder"
+      Deploy|Health)
+        rollback
         ;;
-        
-      Backup)
-        log "Failed to backup database"
-        ;;
-        
-      Pull)
-        log "Failed to pull, $NEW_VERSION image not found"
-        ;;
-        
-      Deploy)
-        log "Failed to deploy $NEW_VERSION image"
-        ;;
-        
-      Health)
-        log "Deployment failed to be healthy"
-        ;;
-        
       *)
-        log "No rollback needed"
+        log "Rollback skipped"
         ;;
-    esac
-
-    rollback || true
-
+      esac
+      
     set_status "ROLLBACK" "Deployment failed, Restore $OLD_VERSION"
 
     exit "$code"
