@@ -47,7 +47,10 @@ wait_health() {
   local COUNT=0
   local MAX_RETRY=15
 
-  CONTAINER_ID=$(docker compose ps -q backend)
+  if ! CONTAINER_ID=$(docker compose ps -q backend); then
+    log "Failed to get backend container id"
+    return 1
+  fi
 
   if [[ -z "$CONTAINER_ID" ]]; then
     log "Backend container not found"
@@ -56,15 +59,13 @@ wait_health() {
 
   while (( COUNT < MAX_RETRY ))
   do
-    STATUS_HEALTH=$(docker inspect \
+    if ! STATUS_HEALTH=$(docker inspect \
       --format='{{.State.Health.Status}}' \
-      "$CONTAINER_ID")
-
-    if [[ -z "$STATUS_HEALTH" ]]; then
-      log "Container has no healthcheck"
+      "$CONTAINER_ID"); then
+      log "Failed to inspect container"
       return 1
     fi
-    
+
     case "$STATUS_HEALTH" in
       healthy)
         log "API is healthy"
@@ -77,12 +78,12 @@ wait_health() {
         ;;
 
       starting)
-        ((COUNT++))
+        ((++COUNT))
         log "Waiting API ... ($COUNT/$MAX_RETRY)"
         ;;
 
       *)
-        log "Unknown status: $STATUS_HEALTH"
+        log "Unknown health status: $STATUS_HEALTH"
         return 1
         ;;
     esac
@@ -90,6 +91,7 @@ wait_health() {
     sleep 2
   done
 
+  log "API health timeout after $MAX_RETRY attempts"
   return 1
 }
 
