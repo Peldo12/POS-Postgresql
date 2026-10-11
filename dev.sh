@@ -6,7 +6,7 @@ log() {
   echo "==> $1"
 }
 
-log "File cheching ..."
+log "File chekhing ..."
 
 if [[ ! -f Dockerfile ]]; then
   log "Dockerfile not found !!"

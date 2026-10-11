@@ -73,6 +73,20 @@ rollback() {
   fi
 }
 
+error_handler() {
+    local exit_code=$?
+
+    trap - ERR
+
+    log "Deployment failed"
+    log "Failed at: $STEP"
+
+    rollback || true
+
+    exit "$exit_code"
+}
+trap error_handler ERR
+
 finish_up() {
   if $PRUNE_IMAGE; then
     log "Prune image ..."
@@ -116,19 +130,14 @@ fi
 
 log "Target version: $NEW_VERSION"
 
-log "Backup Database ..."
-if ! run_backup; then
-  set_status "FAILED" "Database backup failed"
-  exit 1
-fi
+log "Backup database ..."
+STEP="Backup database"
+run_backup
 
 log "Compose ... "
 log "Pull image ... "
-if ! docker compose pull ; then
-  restore_version
-  set_status "FAILED" "Failed to pull, $NEW_VERSION image not found !!"
-  exit 1
-fi
+STEP="Pull image"
+docker compose pull
 
 if ! start_compose; then
   log "Deployment $NEW_VERSION image failed !!"
@@ -148,7 +157,7 @@ if ! wait_health; then
   if rollback; then
     set_status "ROLLBACK" "Health-check failed, Restored $OLD_VERSION"
   else
-    set_status "FAILED" "Failed to health-check version $OLD_VERSION"
+    set_status "FAILED" "Rollback failed after health check failure"
   fi
   exit 1
 fi
