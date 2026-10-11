@@ -38,8 +38,6 @@ services:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - api_network
-    ports:
-      - '3000:3000'
     volumes:
       - ./logs:/app/logs
       - ./public/upload:/app/public/upload
