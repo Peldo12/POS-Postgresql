@@ -46,7 +46,7 @@ start_compose() {
 
 wait_health() {
   local COUNT=0
-  local MAX_RETRY=15
+  local MAX_RETRY=60
 
   if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
