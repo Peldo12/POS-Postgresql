@@ -26,13 +26,13 @@ set_status() {
 restore_version() {
 
   log "Restore APP_VERSION to $OLD_VERSION image"
-  set_status "FAILED" "$NEW_VERSION image not found"
-  CURRENT_VERSION="$OLD_VERSION"
   
   if ! set_version "$OLD_VERSION"; then
     log "Failed to restore APP_VERSION"
     exit 1
   fi
+  
+  CURRENT_VERSION="$OLD_VERSION"
 }
 
 run_backup() {
@@ -46,7 +46,7 @@ start_compose() {
 
 wait_health() {
   local COUNT=0
-  local MAX_RETRY=15
+  local MAX_RETRY=10
 
   if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
@@ -89,7 +89,7 @@ wait_health() {
         ;;
     esac
 
-    sleep 2
+    sleep 1
   done
 
   log "API health timeout after $MAX_RETRY attempts"
@@ -98,16 +98,18 @@ wait_health() {
 
 
 rollback() {
+  rollback() {
   ROLLBACKING=true
+
   restore_version
 
-  log "Restarting old version $OLD_VERSION"
+  log "Rollback backend to $OLD_VERSION"
 
-  if ! start_compose; then
+  if ! docker compose up -d --no-deps --force-recreate backend; then
     log "Rollback compose failed"
     return 1
   fi
-
+  
   if ! wait_health; then
     log "Rollback health failed"
     return 1
