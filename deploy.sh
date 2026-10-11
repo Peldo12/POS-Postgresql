@@ -131,7 +131,7 @@ if ! docker compose pull ; then
 fi
 
 if ! start_compose; then
-  set_status "FAILED" "Deployment $NEW_VERSION image failed !!"
+  log "Deployment $NEW_VERSION image failed !!"
   
   if rollback; then
     set_status "ROLLBACK" "Deployment failed, Restored $OLD_VERSION"
