@@ -125,11 +125,15 @@ error_handler() {
 
   log "Error at stage: $CURRENT_STAGE"
   log "Command: $BASH_COMMAND"
-  log "Line: ${BASH_LINENO[1]}"
+  log "Line: ${BASH_LINENO[0]}"
 
   case "$CURRENT_STAGE" in
     Deploy|Health)
       rollback
+      ;;
+      
+    Pull)
+      restore_version
       ;;
   esac
 
