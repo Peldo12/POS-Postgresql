@@ -45,45 +45,107 @@ start_compose() {
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
-  until curl -sf http://localhost/api/health > /dev/null
+
+  CONTAINER_ID=$(docker compose ps -q backend)
+
+  while (( COUNT < MAX_RETRY ))
   do
-    (( COUNT++ ))
-    log "Waiting API ... ($COUNT/$MAX_RETRY)"
-    if (( COUNT >= MAX_RETRY )); then
-      log "API failed to become healthy after $MAX_RETRY attempts"
+    STATUS_HEALTH=$(docker inspect \
+      --format='{{.State.Health.Status}}' \
+      "$CONTAINER_ID")
+
+    if [[ -z "$STATUS_HEALTH" ]]; then
+      log "Container has no healthcheck"
       return 1
     fi
+    
+    case "$STATUS_HEALTH" in
+      healthy)
+        log "API is healthy"
+        return 0
+        ;;
+
+      unhealthy)
+        log "API is unhealthy"
+        return 1
+        ;;
+
+      starting)
+        ((COUNT++))
+        log "Waiting API ... ($COUNT/$MAX_RETRY)"
+        ;;
+
+      *)
+        log "Unknown status: $STATUS_HEALTH"
+        return 1
+        ;;
+    esac
+
     sleep 1
   done
-  log "API is healthy"
+
+  return 1
+}
+
+verify_rollback() {
+  wait_health
 }
 
 rollback() {
+  log "Failed to deploy $NEW_VERSION image, Restore $OLD_VERSION"
   restore_version
 
-  log "Restarting with $OLD_VERSION image"
-  if ! start_compose; then
-    log "Rollback run failed !!"
-    return 1
-  fi
+  start_compose
 
-  if ! wait_health; then
-    log "Rollback health-check failed !!"
-    return 1
-  fi
+  verify_rollback
+}
+
+deploy_and_verify() {
+    start_compose
+    wait_health
 }
 
 error_handler() {
-    local exit_code=$?
+    local code=$?
 
     trap - ERR
 
     log "Deployment failed"
-    log "Failed at: $STEP"
+    log "Function: ${FUNCNAME[1]}"
+    log "Line: ${BASH_LINENO[0]}"
+    log "Failed command: $BASH_COMMAND"
+    log "Exit code: $code"
+    case "$CURRENT_STAGE" in
+      Init)
+        log "Failed to open project folder"
+        ;;
+        
+      Backup)
+        log "Failed to backup database"
+        ;;
+        
+      Pull)
+        log "Failed to pull, $NEW_VERSION image not found"
+        ;;
+        
+      Deploy)
+        log "Failed to deploy $NEW_VERSION image"
+        ;;
+        
+      Health)
+        log "Deployment failed to be healthy"
+        ;;
+        
+      *)
+        log "No rollback needed"
+        ;;
+    esac
 
     rollback || true
 
-    exit "$exit_code"
+    set_status "ROLLBACK" "Deployment failed, Restore $OLD_VERSION"
+
+    exit "$code"
 }
 trap error_handler ERR
 
@@ -95,6 +157,7 @@ finish_up() {
   
   log "Deploy version: ${CURRENT_VERSION-}"
   log "Status: ${STATUS-}"
+  log "Stage: ${CURRENT_STAGE-}"
   log "Reason: ${REASON-}"
 }
 trap finish_up EXIT
@@ -104,6 +167,7 @@ trap finish_up EXIT
 # ========
 
 log "Open folder project"
+CURRENT_STAGE="Init"
 cd /opt/POS-Postgresql
 
 if [[ -z "${1-}" ]]; then
@@ -130,19 +194,16 @@ fi
 
 log "Target version: $NEW_VERSION"
 
-log "Backup database ..."
-STEP="Backup database"
+CURRENT_STAGE="Backup"
 run_backup
 
-log "Compose ... "
-log "Pull image ... "
-STEP="Pull image"
+CURRENT_STAGE="Pull"
 docker compose pull
 
-STEP="Start compose"
+CURRENT_STAGE="Deploy"
 start_compose
 
-STEP="Health check"
+CURRENT_STAGE="Health"
 wait_health
 
 CURRENT_VERSION="$NEW_VERSION"
