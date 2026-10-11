@@ -98,7 +98,6 @@ wait_health() {
 
 
 rollback() {
-  rollback() {
   ROLLBACKING=true
 
   restore_version
