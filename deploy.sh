@@ -11,7 +11,7 @@ REASON="Unexpected error"
 # ===============
 
 acquire_lock() {
-  if [[ -e "${LOCK_FILE}-}" ]]; then
+  if [[ -e "${LOCK_FILE-}" ]]; then
     log "Another deployment is running"
     exit 1
   fi
