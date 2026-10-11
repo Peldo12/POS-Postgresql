@@ -19,9 +19,8 @@ set_version() {
 }
 
 caller() {
-  CURRENT_VERSION="${1-}"
-  STATUS="${2-}"
-  REASON="${3-}"
+  STATUS="${1-}"
+  REASON="${2-}"
 }
 
 restore_version() {
@@ -75,7 +74,7 @@ rollback() {
 }
 
 finish_up() {
-  log "Prune image"
+  log "Prune image ..."
   if $PRUNE_IMAGE; then
     docker image prune -f
   fi
@@ -112,6 +111,7 @@ CURRENT_VERSION="$OLD_VERSION"
 
 if ! set_version "$NEW_VERSION"; then
   log "Failed to update APP_VERSION"
+  caller "FAILED" "Failed to update env"
   exit 1
 fi
 
@@ -120,6 +120,7 @@ log "Target version: $NEW_VERSION"
 log "Backup Database ..."
 if ! run_backup; then
   log "Database backup failed !!"
+  caller "FAILED" "Database backup failed"
   exit 1
 fi
 
@@ -128,14 +129,16 @@ log "Pull image ... "
 if ! docker compose pull ; then
   log "Pull failed !!"
   restore_version
+  caller "FAILED" "Failed to pull, $NEW_VERSION image not found !!"
   exit 1
 fi
 
 if ! start_compose; then
-  log "Deployment failed !!"
+  log "Deployment $NEW_VERSION image failed !!"
   
   if ! rollback; then
     log "Automatic rollback failed !!"
+    caller "ROLLBACK" "Failed to rollback version $OLD_VERSION"
   fi
   
   exit 1
@@ -151,5 +154,5 @@ if ! wait_health; then
   fi
   exit 1
 fi
-
-caller "$NEW_VERSION" "SUCCESS" "ALL GOOD"
+CURRENT_VERSION="$NEW_VERSION"
+caller "SUCCESS" "ALL GOOD"
