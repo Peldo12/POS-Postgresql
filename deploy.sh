@@ -16,7 +16,7 @@ acquire_lock() {
     exit 1
   fi
 
-  echo "$$" > "$LOCK_FILE"
+  echo "$$" > "${LOCK_FILE-}"
 }
 
 release_lock() {
