@@ -116,7 +116,7 @@ rollback() {
 error_handler() {
   local code=$?
 
-  if [[ "$ROLLBACKING" == true ]]; then
+  if [[ "${ROLLBACKING-}" == true ]]; then
     log "Rollback failed"
     exit 1
   fi
