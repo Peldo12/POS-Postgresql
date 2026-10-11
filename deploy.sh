@@ -26,6 +26,7 @@ set_status() {
 restore_version() {
 
   log "Restore APP_VERSION to $OLD_VERSION image"
+  CURRENT_VERSION="$OLD_VERSION"
   
   if ! set_version "$OLD_VERSION"; then
     log "Failed to restore APP_VERSION"
