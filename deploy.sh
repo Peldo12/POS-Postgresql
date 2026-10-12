@@ -84,6 +84,7 @@ load_env() {
   set -a
   source .env
   source "$ENV_FILE"
+  set +a
   
   validate_env
 }
@@ -125,6 +126,7 @@ validate_env() {
 set_version() {
   local version="$1"
   sed -i "s/^APP_VERSION=.*/APP_VERSION=$version/" .env
+  source .env
 }
 
 restore_version() {
@@ -135,7 +137,6 @@ restore_version() {
     log "Failed to restore APP_VERSION"
     exit 1
   fi
-  source .env
 }
 
 # ===============
