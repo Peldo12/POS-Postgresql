@@ -17,13 +17,14 @@ STAGE_HEALTH="Health"
 
 # Runtime
 # ---------
-CURRENT_STAGE="$STAGE_INIT"
-CURRENT_VERSION="-"
-PRUNE_IMAGE=false
-STATUS="FAILED"
-REASON="Unexpected error"
-ROLLBACKING=false
-
+init_runtime() {
+  CURRENT_STAGE="$STAGE_INIT"
+  CURRENT_VERSION="-"
+  PRUNE_IMAGE=false
+  STATUS="FAILED"
+  REASON="Unexpected error"
+  ROLLBACKING=false
+}
 
 # Deploy
 # ---------
@@ -233,6 +234,16 @@ show_container_logs() {
 }
 
 # ===============
+# Helpers
+# ===============
+
+run_stage() {
+  CURRENT_STAGE="$1"
+  shift
+
+  "$@"
+}
+# ===============
 # Trap
 # ===============
 
@@ -305,12 +316,14 @@ trap cleanup EXIT
 # Main
 # ===============
 
+
 log "Open folder project"
 
 acquire_lock
 
 cd /opt/POS-Postgresql
 
+init_runtime
 load_env
 
 if [[ -z "${1-}" ]]; then
@@ -337,17 +350,13 @@ fi
 
 log "Target version: $NEW_VERSION"
 
-CURRENT_STAGE="$STAGE_BACKUP"
-run_backup
+run_stage "$STAGE_BACKUP" run_backup
 
-CURRENT_STAGE="$STAGE_PULL"
-docker compose pull
+run_stage "$STAGE_PULL" docker compose pull
 
-CURRENT_STAGE="$STAGE_DEPLOY"
-start_compose
+run_stage "$STAGE_DEPLOY" start_compose
 
-CURRENT_STAGE="$STAGE_HEALTH"
-wait_health
+run_stage "$STAGE_HEALTH" wait_health
 
 CURRENT_STAGE="Done"
 CURRENT_VERSION="$NEW_VERSION"
