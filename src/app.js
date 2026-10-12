@@ -7,6 +7,8 @@ app.use(express.json());
 // app.use(express.static("/public/upload"))
 app.use(cors());
 
+app.disable('x-powered-by');
+
 app.get('/api/', (req, res) => {
   res.json({
     status: 'ok',
