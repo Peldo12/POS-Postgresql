@@ -149,7 +149,7 @@ run_backup() {
 
 start_compose() {
   log "Start container ..."
-  docker compose up -d --no-deps --force-recreate backend
+  docker compose up -d --no-deps --force-recreate
 }
 
 wait_health() {
