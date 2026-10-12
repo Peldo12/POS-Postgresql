@@ -17,9 +17,13 @@ STAGE_HEALTH="Health"
 
 # Runtime
 # ---------
+CURRENT_STAGE="$STAGE_INIT"
+CURRENT_VERSION="-"
 PRUNE_IMAGE=false
 STATUS="FAILED"
 REASON="Unexpected error"
+ROLLBACKING=false
+
 
 # Deploy
 # ---------
@@ -41,7 +45,9 @@ set_status() {
 
 acquire_lock() {
   if [[ -f "$LOCK_FILE" ]]; then
-    OLD_PID=$(cat "$LOCK_FILE")
+    local OLD_PID=-
+
+    OLD_PID=$(<"$LOCK_FILE")
 
     if kill -0 "$OLD_PID" 2>/dev/null; then
       log "Deployment is running with PID $OLD_PID"
@@ -64,10 +70,20 @@ release_lock() {
 # ===============
 
 load_env() {
-  set -a
+  [[ -f .env ]] || {
+    log ".env not found"
+    return 1
+  }
+  
+  [[ -f "$ENV_FILE" ]] || {
+    log "$ENV_FILE not found"
+    return 1
+  }
+  
   source .env
   source "$ENV_FILE"
-  set +a
+
+  validate_env
 }
 
 require_env() {
@@ -80,25 +96,33 @@ require_env() {
 }
 
 validate_env() {
-  local vars=(
+  local REQUIRE_ENV=(
     APP_VERSION
+    SUPER_NAME
+    SUPER_EMAIL
+    SUPER_PASS
     DB_HOST
     DB_USER
     DB_PASSWORD
     DB_NAME
     REDIS_URL
+    EMAIL_HOST
+    EMAIL_PORT
+    EMAIL_USER
+    EMAIL_PASS
     ACCESS_SECRET
     REFRESH_SECRET
   )
 
-  for var in "${vars[@]}"; do
+  for var in "${REQUIRE_ENV[@]}"; do
     require_env "$var"
   done
 }
 
 
 set_version() {
-  sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
+  local version="$1"
+  sed -i "s/^APP_VERSION=.*/APP_VERSION=$version/" .env
 }
 
 restore_version() {
@@ -109,8 +133,6 @@ restore_version() {
     log "Failed to restore APP_VERSION"
     exit 1
   fi
-  
-  CURRENT_VERSION="$OLD_VERSION"
 }
 
 # ===============
@@ -129,6 +151,8 @@ start_compose() {
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
+  local CONTAINER_ID=-
+  local HEALTH_STATUS=-
 
   if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
@@ -142,14 +166,14 @@ wait_health() {
 
   while (( COUNT < MAX_RETRY ))
   do
-    if ! STATUS_HEALTH=$(docker inspect \
+    if ! HEALTH_STATUS=$(docker inspect \
       --format='{{.State.Health.Status}}' \
       "$CONTAINER_ID"); then
       log "Failed to inspect container"
       return 1
     fi
 
-    case "$STATUS_HEALTH" in
+    case "$HEALTH_STATUS" in
       healthy)
         log "API is healthy"
         return 0
@@ -166,7 +190,7 @@ wait_health() {
         ;;
 
       *)
-        log "Unknown health status: $STATUS_HEALTH"
+        log "Unknown health status: $HEALTH_STATUS"
         return 1
         ;;
     esac
@@ -181,7 +205,7 @@ wait_health() {
 
 rollback() {
   ROLLBACKING=true
-
+  trap 'ROLLBACKING=false' RETURN
   restore_version
 
   log "Rollback backend to $OLD_VERSION"
@@ -203,7 +227,7 @@ rollback() {
 show_container_logs() {
   log "Last backend logs ..."
 
-  docker logs --tail 50 pos-backend-1 || true
+  docker compose logs --tail 50 backend || true
 }
 
 # ===============
@@ -269,8 +293,8 @@ finish_up() {
 }
 
 cleanup() {
-  release_lock
   finish_up
+  release_lock
 }
 
 trap cleanup EXIT
@@ -283,11 +307,9 @@ log "Open folder project"
 
 acquire_lock
 
-CURRENT_STAGE="Init"
 cd /opt/POS-Postgresql
 
 load_env
-validate_env
 
 if [[ -z "${1-}" ]]; then
   read -p "==> Input version : " NEW_VERSION
@@ -313,18 +335,19 @@ fi
 
 log "Target version: $NEW_VERSION"
 
-CURRENT_STAGE="Backup"
+CURRENT_STAGE="$STAGE_BACKUP"
 run_backup
 
-CURRENT_STAGE="Pull"
+CURRENT_STAGE="$STAGE_PULL"
 docker compose pull
 
-CURRENT_STAGE="Deploy"
+CURRENT_STAGE="$STAGE_DEPLOY"
 start_compose
 
-CURRENT_STAGE="Health"
+CURRENT_STAGE="$STAGE_HEALTH"
 wait_health
 
+CURRENT_STAGE="Done"
 CURRENT_VERSION="$NEW_VERSION"
 PRUNE_IMAGE=true
 set_status "SUCCESS" "Deployment successful"
