@@ -208,7 +208,7 @@ wait_health() {
 
 rollback() {
   ROLLBACKING=true
-  trap 'ROLLBACKING=false' RETURN
+
   restore_version
 
   log "Rollback backend to $OLD_VERSION"
