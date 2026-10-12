@@ -29,6 +29,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - api_network
+    env_file:
+      - /etc/pos/db.env
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
       interval: 5s
