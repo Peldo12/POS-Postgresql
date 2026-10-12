@@ -2,15 +2,42 @@
 
 set -Eeuo pipefail
 
-PRUNE_IMAGE=false
-STATUS="FAILED"
-REASON="Unexpected error"
+# Config
+# ---------
 LOCK_FILE="/tmp/deploy.lock"
 ENV_FILE="/etc/pos/production.env"
 
+# Stage
+# ---------
+STAGE_INIT="Init"
+STAGE_BACKUP="Backup"
+STAGE_PULL="Pull"
+STAGE_DEPLOY="Deploy"
+STAGE_HEALTH="Health"
+
+# Runtime
+# ---------
+PRUNE_IMAGE=false
+STATUS="FAILED"
+REASON="Unexpected error"
+
+# Deploy
+# ---------
+OLD_VERSION=-
+NEW_VERSION=-
+
 # ===============
-# function inline
+# Utility
 # ===============
+
+log() {
+  echo "==> $1"
+}
+
+set_status() {
+  STATUS="${1-}"
+  REASON="${2-}"
+}
 
 acquire_lock() {
   if [[ -f "$LOCK_FILE" ]]; then
@@ -32,17 +59,46 @@ release_lock() {
   rm -f "${LOCK_FILE-}"
 }
 
-log() {
-  echo "==> $1"
+# ===============
+# Environment
+# ===============
+
+load_env() {
+  set -a
+  source .env
+  source "$ENV_FILE"
+  set +a
 }
+
+require_env() {
+  local VAR="$1"
+
+  if [[ -z "${!VAR:-}" ]]; then
+    log "$VAR is not set"
+    return 1
+  fi
+}
+
+validate_env() {
+  local vars=(
+    APP_VERSION
+    DB_HOST
+    DB_USER
+    DB_PASSWORD
+    DB_NAME
+    REDIS_URL
+    ACCESS_SECRET
+    REFRESH_SECRET
+  )
+
+  for var in "${vars[@]}"; do
+    require_env "$var"
+  done
+}
+
 
 set_version() {
   sed -i "s/^APP_VERSION=.*/APP_VERSION=$1/" .env
-}
-
-set_status() {
-  STATUS="${1-}"
-  REASON="${2-}"
 }
 
 restore_version() {
@@ -57,20 +113,24 @@ restore_version() {
   CURRENT_VERSION="$OLD_VERSION"
 }
 
+# ===============
+# Deployment
+# ===============
+
 run_backup() {
   sudo /usr/local/bin/pos-db-backup.sh
 }
 
 start_compose() {
   log "Start container ..."
-  docker compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate backend
+  docker compose up -d --no-deps --force-recreate backend
 }
 
 wait_health() {
   local COUNT=0
   local MAX_RETRY=30
 
-  if ! CONTAINER_ID=$(docker compose --env-file "$ENV_FILE" ps -q backend); then
+  if ! CONTAINER_ID=$(docker compose ps -q backend); then
     log "Failed to get backend container id"
     return 1
   fi
@@ -146,6 +206,11 @@ show_container_logs() {
   docker logs --tail 50 pos-backend-1 || true
 }
 
+# ===============
+# Trap
+# ===============
+
+
 error_handler() {
   local code=$?
 
@@ -210,9 +275,9 @@ cleanup() {
 
 trap cleanup EXIT
 
-# ========
-# main run
-# ========
+# ===============
+# Main
+# ===============
 
 log "Open folder project"
 
@@ -220,6 +285,9 @@ acquire_lock
 
 CURRENT_STAGE="Init"
 cd /opt/POS-Postgresql
+
+load_env
+validate_env
 
 if [[ -z "${1-}" ]]; then
   read -p "==> Input version : " NEW_VERSION
@@ -249,7 +317,7 @@ CURRENT_STAGE="Backup"
 run_backup
 
 CURRENT_STAGE="Pull"
-docker compose --env-file "$ENV_FILE" pull
+docker compose pull
 
 CURRENT_STAGE="Deploy"
 start_compose
