@@ -81,10 +81,8 @@ load_env() {
     return 1
   }
   
-  set -a
   source .env
   source "$ENV_FILE"
-  set +a
 
   validate_env
 }
