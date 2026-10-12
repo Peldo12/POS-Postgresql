@@ -80,10 +80,11 @@ load_env() {
     log "$ENV_FILE not found"
     return 1
   }
-  
+
+  set -a
   source .env
   source "$ENV_FILE"
-
+  set +a
   validate_env
 }
 
@@ -134,6 +135,7 @@ restore_version() {
     log "Failed to restore APP_VERSION"
     exit 1
   fi
+  source .env
 }
 
 # ===============
