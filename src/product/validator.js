@@ -52,7 +52,7 @@ const updateStockSchema = joi
       .array()
       .items({
         id: joi.number().integer().required().label('ID'),
-        updateStock: joi.number().integer().required().label('Update Stock'),
+        value: joi.number().integer().required().label('Update Stock'),
       })
       .required()
       .label('Transactions'),

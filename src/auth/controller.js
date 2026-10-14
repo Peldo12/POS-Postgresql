@@ -183,12 +183,12 @@ async function resetPass(req, res, next) {
  */
 async function token(req, res, next) {
   try {
-    const { id } = req.user;
+    const { userId } = req.user;
     const { refreshToken } = req.body;
     if (!refreshToken) throw new AppError(400, 'No token has given');
 
-    const { userId, username, accessToken } = await service.refreshToken({
-      userId: id,
+    const { username, accessToken } = await service.refreshToken({
+      userId,
       refreshToken,
     });
 
@@ -217,8 +217,8 @@ async function token(req, res, next) {
  */
 async function me(req, res, next) {
   try {
-    const { id } = req.user;
-    const { user } = await service.getById({ userId: id });
+    const { userId } = req.user;
+    const { user } = await service.getById({ userId });
     const { username } = user;
 
     success({
@@ -227,7 +227,7 @@ async function me(req, res, next) {
     });
 
     req.logger.info('User request profile', {
-      userId: id,
+      userId,
       username,
       action: 'profile',
     });
@@ -245,11 +245,11 @@ async function me(req, res, next) {
  */
 async function logout(req, res, next) {
   try {
-    const { id } = req.user;
-    await service.getById({ userId: id });
+    const { userId } = req.user;
+    await service.getById({ userId });
 
     const { username } = await service.createToken({
-      id,
+      id: userId,
       token: null,
       type: 'REFRESH_TOKEN',
     });
@@ -260,7 +260,7 @@ async function logout(req, res, next) {
     });
 
     req.logger.info('User logout', {
-      userId: id,
+      userId,
       username,
       action: 'logout',
     });

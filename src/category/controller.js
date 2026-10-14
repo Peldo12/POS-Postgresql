@@ -24,9 +24,9 @@ async function categories(req, res, next) {
       resourceId: 'all',
       action: 'load',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 
@@ -60,9 +60,9 @@ async function byId(req, res, next) {
       resourceId: id,
       action: 'load',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 
@@ -76,7 +76,11 @@ async function create(req, res, next) {
     const { userId, username } = req.user;
 
     const { name } = req.body;
-    const result = await service.createOrUpdate(req.body);
+    const result = await service.createOrUpdate({
+      ...req.body,
+      key: 'categories:all',
+      userId,
+    });
 
     success({
       statusCode: 201,
@@ -91,9 +95,9 @@ async function create(req, res, next) {
       resourceId: result[0].id,
       action: 'create',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 
@@ -113,6 +117,7 @@ async function update(req, res, next) {
       id,
       update: true,
       key: `categories:${id}`,
+      userId,
     });
     success({
       message: `Category ${name} updated`,
@@ -126,9 +131,9 @@ async function update(req, res, next) {
       resourceId: id,
       action: 'update',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 
@@ -147,6 +152,7 @@ async function remove(req, res, next) {
       value: dateNow(),
       update: true,
       key: `categories:${id}`,
+      userId,
     });
     success({
       message: `Category ${categories.name} deleted`,
@@ -160,9 +166,9 @@ async function remove(req, res, next) {
       resourceId: id,
       action: 'remove',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 
@@ -181,6 +187,7 @@ async function restore(req, res, next) {
       value: null,
       update: true,
       key: `categories:${id}`,
+      userId,
     });
 
     success({
@@ -195,9 +202,9 @@ async function restore(req, res, next) {
       resourceId: id,
       action: 'restore',
     });
-  } catch (e) {
+  } catch (error) {
     req.logger.error(error.message, { stack: error.stack });
-    next(e);
+    next(error);
   }
 }
 

@@ -2,64 +2,56 @@ const { pool } = require('../config/pool');
 const info = require('./info');
 const log = require('./log');
 const model = require('./model');
+const transaction = require('../common/helpers/transaction');
+const logger = require('../common/middleware/logger');
+const AppError = require('../common/utils/AppError');
 
-async function getProducts(filters) {
-  try {
-    return await model.productJoin(filters);
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function getById(options) {
-  try {
-    return await model.productByIdentifier(options);
-  } catch (error) {
-    throw error;
-  }
+async function getProducts(options) {
+  return await model.productJoin(options);
 }
 
 async function createProduct(options) {
-  const client = await pool.connect();
-  try {
-    const { product, user } = options;
-    await client.query('BEGIN');
+  const { product, user } = options;
+  const { userId } = user;
 
-    const result = await model.create({
-      client,
-      product,
-    });
+  const { products } = await model.productJoin({
+    id: product.id,
+  });
+  if (!products.length) throw new AppError(404, 'Product not found');
+  if (product.sku !== products.sku)
+    throw new AppError(400, 'SKU cannot be changed');
+
+  const result = await transaction(async (client) => {
+    const [item] = await model.create({ client, product });
     await info.create({
       client,
-      productId: result[0].id,
-      userId: user.id,
+      productId: item.id,
     });
     await log.create({
       client,
       action: 'CREATE',
-      userId: user.id,
-      data: { ...product, id: result[0].id },
-      refId: result[0].id,
+      userId,
+      data: { ...product, id: item.id },
+      refId: item.id,
       refType: 'PRODUCT',
     });
-
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+    return item;
+  });
+  return result;
 }
 
 async function updateProduct(options) {
-  const client = await pool.connect();
-  try {
-    const { product, user } = options;
-    await client.query('BEGIN');
+  const { product, user } = options;
+  const { userId } = user;
 
-    const result = await model.update({
+  const { products } = await model.productJoin({
+    sku: product.sku,
+    categoryId: product.category_id,
+  });
+  if (products.length) throw new AppError(400, 'SKU already used');
+
+  const result = await transaction(async (client) => {
+    const item = await model.update({
       client,
       product,
     });
@@ -76,29 +68,47 @@ async function updateProduct(options) {
       refId: product.id,
       refType: 'PRODUCT',
     });
+    return item;
+  });
+}
 
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+async function updateStocks(options, user) {
+  const { userId, username } = user;
+  const result = [];
+  await transaction(async (client) => {
+    for (let product of options) {
+      const { value, id } = product;
+
+      const updated = await model.updateStock(product);
+      if (!stockUpdate.rowCount)
+        throw new AppError(400, 'Insufficient stock product');
+      result.push({ id, status: 'success' });
+      logger.info('Product stock updated', {
+        userId,
+        username,
+        resource: 'products',
+        resourceId: id,
+        action: 'update',
+      });
+    }
+  });
+  return result;
 }
 
 async function removeOrRestoreProduct(options) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const { id, value = null, user } = options;
+  const { id, value = null, user } = options;
+
+  const exist = await getProducts({ id });
+  console.log(exist);
+
+  const result = await transaction(async (client) => {
     let action = value ? 'REMOVE' : 'RESTORE';
 
     const result = await model.removeOrRestore({
       client,
       ...options,
     });
-    const old = await model.productByIdentifier({ id });
+    const old = await getProducts({ id });
 
     await log.create({
       client,
@@ -108,36 +118,27 @@ async function removeOrRestoreProduct(options) {
       refId: result.id,
       refType: 'PRODUCT',
     });
-
-    await client.query('COMMIT');
-    const product = await model.productByIdentifier({ id });
-    return product;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+    return await getProducts({ id });
+  });
 }
 
-async function permanentDelete() {
-  const client = await pool.connect();
-  try {
-    const result = await model.permanentRemoveProduct(id);
+// async function permanentDelete() {
+//   const client = await pool.connect();
+//   try {
+//     const result = await model.permanentRemoveProduct(id);
 
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  }
-}
+//     await client.query('COMMIT');
+//     return result;
+//   } catch (error) {
+//     await client.query('ROLLBACK');
+//     throw error;
+//   }
+// }
 
 module.exports = {
   getProducts,
-  getById,
   createProduct,
   updateProduct,
+  updateStocks,
   removeOrRestoreProduct,
-  permanentDelete,
 };

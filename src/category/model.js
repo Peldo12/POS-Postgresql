@@ -28,19 +28,19 @@ async function getCategories(options) {
 }
 
 async function createCategory(options) {
-  const { name, description } = options;
+  const { name, description, userId } = options;
 
   const sql = `
     INSERT INTO 
-      categories (name, description) 
-    VALUES ($1, $2)
+      categories (name, description, user_id) 
+    VALUES ($1, $2, $3)
     RETURNING id, name, description`;
-  const { rows } = await pool.query(sql, [name, description]);
+  const { rows } = await pool.query(sql, [name, description, userId]);
   return rows;
 }
 
 async function updateCategory(options) {
-  const { id, name, description, value } = options;
+  const { id, name, description, userId, value } = options;
   let params = [];
   let sql = `UPDATE 
       categories
@@ -53,6 +53,10 @@ async function updateCategory(options) {
   if (description) {
     params.push(description);
     sql += `, description = $${params.length}`;
+  }
+  if (userId) {
+    params.push(userId);
+    sql += `, user_id = $${params.length}`;
   }
   if (value !== undefined) {
     params.push(value);

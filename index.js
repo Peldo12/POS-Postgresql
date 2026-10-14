@@ -13,8 +13,7 @@ app.listen(port, async () => {
 });
 
 function stopApp(signal) {
-  console.log(` ==> Receive ${signal}`);
-  console.log(` ==> Shutdown with care ...`);
+  console.log(`${new Date().toLocaleTimeString()}: Shutdown with care ...`);
   process.exit(0);
 }
 

@@ -1,10 +1,11 @@
-const { productByIdentifier } = require('./model');
+const { productJoin } = require('./model');
 
 async function create(options) {
   try {
     const { client, action, userId, data, refId, refType } = options;
     const id = data.id;
-    const old = await productByIdentifier({ id });
+    const { products } = await productJoin({ id });
+    console.log(products);
     await client.query(
       `
       INSERT INTO product_log
@@ -12,7 +13,7 @@ async function create(options) {
       VALUES
         ($1, $2, $3, $4, $5, $6, $7)
     `,
-      [id, userId, action, old, data, refType, refId]
+      [id, userId, action, products[0], data, refType, refId]
     );
   } catch (error) {
     throw error;

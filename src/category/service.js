@@ -8,6 +8,7 @@ async function categories(options) {
   if (cache) {
     return cache;
   }
+
   const db = await model.getCategories(options);
   await redis.save({
     key,
@@ -23,9 +24,11 @@ async function createOrUpdate(options) {
   const { name, description, update, key } = options;
   let result = {};
   if (!update) {
-    const found = await categories({ name });
-    if (found.length !== 0)
-      throw new AppError(400, `Category ${name} already exists`);
+    const found = await categories({ name, key });
+    for (let item of found) {
+      if (item.name === name)
+        throw new AppError(400, `Category ${name} already exists`);
+    }
     result = await model.createCategory(options);
   } else {
     result = await model.updateCategory(options);

@@ -1,15 +1,6 @@
-const { updateStockProduct, statsProduct } = require('./model');
-const {
-  getProducts,
-  getById,
-  createProduct,
-  updateProduct,
-  removeOrRestoreProduct,
-  permanentDelete,
-} = require('./service');
+const service = require('./service');
 const success = require('../common/helpers/response');
 const dateNow = require('../common/helpers/date');
-const AppError = require('../common/utils/AppError');
 
 /**
  * @desc get all products
@@ -19,6 +10,7 @@ const AppError = require('../common/utils/AppError');
 async function products(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
     const filters = {
       page: +req.query.page || 1,
       limit: +req.query.limit || 10,
@@ -31,21 +23,25 @@ async function products(req, res, next) {
       orderBy: req.query.orderBy?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC',
     };
 
-    const { products, pagination } = await getProducts(filters);
-    req.logger.info(`Products loaded by ${req.user.username}`, {
-      user: req.user.username,
-      role: req.user.role,
-      requested_at: dateNow('iso'),
-    });
+    const { products, pagination } = await service.getProducts(filters);
+
     success({
       message: 'Products are loaded',
       data: { products },
       pagination,
       res,
     });
-  } catch (e) {
-    req.logger.error('Failed on load products', { error: e });
-    next(e);
+
+    req.logger.info('Products loaded', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: 'all',
+      action: 'load',
+    });
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -57,23 +53,28 @@ async function products(req, res, next) {
 async function byId(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
     const { id } = req.params;
 
-    const product = await getById({ id });
-    if (!product) throw new AppError(404, 'Product not found');
+    const { products } = await service.getProducts({ id });
+    if (!products) throw new AppError(404, 'Product not found');
+
     success({
-      message: `Product id ${id} loaded`,
-      data: { products: [product] },
+      message: 'Product are loaded',
+      data: { products },
       res,
     });
-    req.logger.info(`Product id loaded by ${req.user.username}`, {
-      user: req.user.username,
-      role: req.user.role,
-      requested_at: dateNow('iso'),
+
+    req.logger.info('Products id loaded', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: id,
+      action: 'load',
     });
-  } catch (e) {
-    req.logger.error(`Failed on load product ${req.params.id}`, { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -85,32 +86,30 @@ async function byId(req, res, next) {
 async function create(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
-    const { sku } = req.body;
-    const found = await getById({ sku });
-    if (found && sku === found.sku) throw new AppError(400, 'SKU already used');
+    const { userId, username } = req.user;
 
-    const product = await createProduct({
+    const product = await service.createProduct({
       product: req.body,
       user: req.user,
     });
 
     success({
       statusCode: 201,
-      message: `Product ${product[0].name} created`,
+      message: `Product ${product?.name} created`,
       data: { products: product },
       res,
     });
-    req.logger.info(
-      `Product ${product[0].name} created by ${req.user.username}`,
-      {
-        user: req.user.username,
-        role: req.user.role,
-        created_at: dateNow('iso'),
-      }
-    );
-  } catch (e) {
-    req.logger.error(`Failed create product ${req.body.name}`, { error: e });
-    next(e);
+
+    req.logger.info('Products created', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: 'all',
+      action: 'create',
+    });
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -122,32 +121,29 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+
     const { id } = req.params;
 
-    const { sku } = req.body;
-    const found = await getById({ id });
-    if (!found) throw new AppError(404, 'Product not found');
-    if (sku !== found.sku) throw new AppError(400, 'SKU unable to change');
-    const result = await updateProduct({
+    const result = await service.updateProduct({
       product: { ...req.body, id },
       user: req.user,
     });
     success({
-      message: `Product ${result[0].name} updated`,
+      message: 'Product updated',
       data: { products: result },
       res,
     });
-    req.logger.info(
-      `Product ${result[0].name} updated by  ${req.user.username}`,
-      {
-        user: req.user.username,
-        role: req.user.role,
-        updated_at: dateNow('iso'),
-      }
-    );
-  } catch (e) {
-    req.logger.error(`Failed update product id ${req.params.id}`, { error: e });
-    next(e);
+    req.logger.info('Product updated by', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: id,
+      action: 'update',
+    });
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -159,23 +155,27 @@ async function update(req, res, next) {
 async function updateStock(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+
     const { transactions } = req.body;
-    if (!Array.isArray(transactions) || transactions.length === 0)
+    if (!Array.isArray(transactions) || !transactions.length)
       throw new AppError(400, 'Invalid or empty transactions');
-    const data = await updateStockProduct(transactions);
+    const data = await service.updateStocks(transactions, req.user);
     success({
-      message: 'Stocks updated',
+      message: 'Products stock updated',
       data,
       res,
     });
-    req.logger.info(`Products stocks updated by ${req.user.username}`, {
-      user: req.user.username,
-      role: req.user.role,
-      updated_at: dateNow('iso'),
+    req.logger.info('Products stock updated', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: 'all',
+      action: 'stocks',
     });
-  } catch (e) {
-    req.logger.error('Failed update stocks products', { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -187,12 +187,10 @@ async function updateStock(req, res, next) {
 async function remove(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
     const { id } = req.params;
-    const found = await getById({ id });
-    if (!found) throw new AppError(404, 'Product not found');
-    if (found.deleted_at) throw new AppError(400, 'Product already deleted');
 
-    const result = await removeOrRestoreProduct({
+    const result = await service.removeOrRestoreProduct({
       id,
       value: dateNow(),
       user: req.user,
@@ -203,14 +201,16 @@ async function remove(req, res, next) {
       data: { products: [result] },
       res,
     });
-    req.logger.info(`Product ${result.name} removed by ${req.user.username}`, {
-      user: req.user.username,
-      role: req.user.role,
-      removed_at: dateNow('iso'),
+    req.logger.info('Product removed by', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: id,
+      action: 'remove',
     });
-  } catch (e) {
-    req.logger.error(`Failed remove product id ${req.params.id}`, { error: e });
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -236,16 +236,16 @@ async function restore(req, res, next) {
       data: { products: [result] },
       res,
     });
-    req.logger.info(`Product ${result.name} restored by ${req.user.username}`, {
-      user: req.user.username,
-      role: req.user.role,
-      requested_at: dateNow('iso'),
+    req.logger.info('Product restored', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: id,
+      action: 'restore',
     });
-  } catch (e) {
-    req.logger.error(`Failed restore product id ${req.params.id}`, {
-      error: e,
-    });
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -257,15 +257,20 @@ async function removePermanent(req, res, next) {
 
     const result = await removePermanent(id);
     success({
-      message: `Product ${id} permanent deleted`,
+      message: 'Product permanent deleted',
       data: { products: [result] },
       res,
     });
-  } catch (error) {
-    req.logger.error(`Failed permanent delete product ${req.params.id}`, {
-      error: e,
+    req.logger.info('Product permanent deleted', {
+      userId,
+      username,
+      resource: 'products',
+      resourceId: id,
+      action: 'delete',
     });
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 
@@ -277,8 +282,9 @@ async function stats(req, res, next) {
       data,
       res,
     });
-  } catch (e) {
-    next(e);
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
   }
 }
 

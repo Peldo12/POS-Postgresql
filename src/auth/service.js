@@ -165,7 +165,7 @@ async function login({ username, password }) {
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
   if (!user.email_verified_at)
-    throw new AppError(401, 'Your email not yet verified');
+    throw new AppError(401, 'Your email not verified, check email');
 
   const match = await hash.verify(password, user.password);
   if (!match) throw new AppError(401, 'Invalid Credentials');
@@ -252,6 +252,7 @@ async function issueTokens(user, isRefresh = false) {
     username: user.username,
     role: user.role,
     login_at: isRefresh ? user.last_login_at : dateNow(),
+    email_verified_at: user.email_verified_at,
     generated_at: dateNow('iso'),
   };
 

@@ -1,30 +1,85 @@
 const { pool } = require('../config/pool');
 const AppError = require('../common/utils/AppError');
 
-async function productByIdentifier(options) {
-  const { id, sku, name } = options;
-  let sql = `
-    SELECT p.*, pi.deleted_at, pi.deleted_by 
-    FROM products p
-    LEFT JOIN product_info pi
-    ON pi.product_id = p.id
-    WHERE 1=1`;
+async function productJoin(filters) {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    range,
+    categoryId,
+    minPrice,
+    maxPrice,
+    sort = 'id',
+    orderBy = 'ASC',
+    id,
+    sku,
+  } = filters;
+
+  const offset = (page - 1) * limit;
+
+  let whereClause = 'WHERE pi.deleted_at IS NULL';
   const params = [];
+
+  if (search) {
+    params.push(`%${search}%`);
+    whereClause += ` AND p.name ILIKE $${params.length}`;
+  }
+
   if (id) {
     params.push(id);
-    sql += ` AND p.id = $${params.length}`;
+    whereClause += ` AND p.id = $${params.length}`;
   }
   if (sku) {
     params.push(sku);
-    sql += ` AND p.sku = $${params.length}`;
-  }
-  if (name) {
-    params.push(name);
-    sql += ` AND p.name LIKE %${name}%`;
+    whereClause += ` AND p.sku = $${params.length}`;
   }
 
-  const { rows } = await pool.query(sql, params);
-  return rows[0];
+  if (categoryId) {
+    params.push(categoryId);
+    whereClause += ` AND p.category_id = $${params.length}`;
+  }
+  if (range === 'price' && minPrice && maxPrice) {
+    params.push(minPrice, maxPrice);
+    whereClause += ` AND sell BETWEEN $${params.length - 1} AND $${params.length}`;
+  }
+
+  const countSql = `
+  SELECT COUNT(*) 
+  FROM products p
+  JOIN product_info pi
+  ON pi.product_id = p.id
+  ${whereClause}`;
+
+  let sql = `
+    SELECT p.id, p.sku, p.barcode, p.name, 
+      c.name AS category, p.buy::int, p.sell::int,
+      p.image, pi.deleted_at
+    FROM products p 
+    JOIN categories c 
+    ON p.category_id = c.id 
+    JOIN product_info pi
+    ON pi.product_id = p.id
+    ${whereClause}`;
+  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+  sql += ` ORDER BY p.${sort} ${direction}`;
+
+  params.push(limit, offset);
+  sql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+  const [countResult, dataResult] = await Promise.all([
+    pool.query(countSql, params.slice(0, params.length - 2)),
+    pool.query(sql, params),
+  ]);
+
+  return {
+    products: dataResult.rows,
+    pagination: {
+      page: +page,
+      limit: +limit,
+      total: +countResult.rows[0].count,
+    },
+  };
 }
 
 async function create(options) {
@@ -85,7 +140,7 @@ async function update(options) {
   } = product;
 
   const { rows } = await client.query(
-    `UPDATE products p
+    `UPDATE products
       SET 
         sku = $1, barcode = $2, name = $3,
         buy = $4, sell = $5, category_id = $6,
@@ -112,30 +167,14 @@ async function update(options) {
   return rows;
 }
 
-async function updateStockProduct(data) {
-  const result = [];
-  const client = pool.connect();
-  try {
-    await client.query('BEGIN');
-    for (const product of data) {
-      const { updateStock, id } = product;
-      const sql = `
+async function updateStock(options) {
+  const { value, id } = options;
+  const sql = `
       UPDATE products
       SET stock = stock + $1 
       WHERE id = $2 AND stock >= $1`;
-      const stockUpdate = await client.query(sql, [updateStock, id]);
-      if (stockUpdate.rowCount === 0)
-        throw new AppError(400, `Insufficient stock product ${id}`);
-      result.push({ id, status: 'success' });
-    }
-    await client.query('COMMIT');
-    return { item: result };
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    await client.release();
-  }
+
+  return await client.query(sql, [value, id]);
 }
 
 async function removeOrRestore(options) {
@@ -175,73 +214,6 @@ async function permanentRemoveProduct(id) {
   return rows;
 }
 
-async function productJoin(filters) {
-  const {
-    page = 1,
-    limit = 10,
-    search,
-    range,
-    categoryId,
-    minPrice,
-    maxPrice,
-    sort = 'id',
-    orderBy = 'ASC',
-  } = filters;
-
-  const offset = (page - 1) * limit;
-
-  let whereClause = 'WHERE pi.deleted_at IS NULL';
-  const params = [];
-
-  if (search) {
-    params.push(`%${search}%`);
-    whereClause += ` AND p.name ILIKE $${params.length}`;
-  }
-  if (categoryId) {
-    params.push(categoryId);
-    whereClause += ` AND p.category_id = $${params.length}`;
-  }
-  if (range === 'price' && minPrice && maxPrice) {
-    params.push(minPrice, maxPrice);
-    whereClause += ` AND sell BETWEEN $${params.length - 1} AND $${params.length}`;
-  }
-
-  const countSql = `
-  SELECT COUNT(*) 
-  FROM products p
-  JOIN product_info pi
-  ON pi.product_id = p.id
-  ${whereClause}`;
-
-  let sql = `
-    SELECT p.id, p.sku, p.barcode, p.name, c.name AS category, p.buy::int, p.sell::int, p.image 
-    FROM products p 
-    JOIN categories c 
-    ON p.category_id = c.id 
-    JOIN product_info pi
-    ON pi.product_id = p.id
-    ${whereClause}`;
-  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  sql += ` ORDER BY p.${sort} ${direction}`;
-
-  params.push(limit, offset);
-  sql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
-
-  const [countResult, dataResult] = await Promise.all([
-    pool.query(countSql, params.slice(0, params.length - 2)),
-    pool.query(sql, params),
-  ]);
-
-  return {
-    products: dataResult.rows,
-    pagination: {
-      page: +page,
-      limit: +limit,
-      total: +countResult.rows[0].count,
-    },
-  };
-}
-
 async function statsProduct() {
   const sql = `
     SELECT COUNT(*) 
@@ -277,10 +249,10 @@ async function statsProduct() {
 }
 
 module.exports = {
-  productByIdentifier,
+  productJoin,
   create,
   update,
-  updateStockProduct,
+  updateStock,
   removeOrRestore,
   permanentRemoveProduct,
   productJoin,
