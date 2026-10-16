@@ -3,10 +3,7 @@ const app = express();
 const logger = require('./common/middleware/logger');
 const cors = require('cors');
 
-app.use(() => {
-  express.json();
-  cors();
-});
+app.use(express.json(), cors());
 // app.use(express.static("/public/upload"))
 
 app.disable('x-powered-by');

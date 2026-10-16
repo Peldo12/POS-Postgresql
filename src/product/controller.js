@@ -190,18 +190,18 @@ async function remove(req, res, next) {
     const { userId, username } = req.user;
     const { id } = req.params;
 
-    const result = await service.removeOrRestoreProduct({
+    const { products } = await service.removeOrRestoreProduct({
       id,
       value: dateNow(),
       user: req.user,
     });
 
     success({
-      message: `Product ${result.name} removed`,
-      data: { products: [result] },
+      message: `Product ${products[0].name} removed`,
+      data: { products },
       res,
     });
-    req.logger.info('Product removed by', {
+    req.logger.info('Product removed', {
       userId,
       username,
       resource: 'products',
@@ -222,18 +222,17 @@ async function remove(req, res, next) {
 async function restore(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
-    const { id } = req.params;
-    const found = await getById({ id });
-    if (!found) throw new AppError(404, 'Product not found');
-    if (!found.deleted_at) throw new AppError(400, 'Product not deleted');
+    const { userId, username } = req.user;
 
-    const result = await removeOrRestoreProduct({
+    const { id } = req.params;
+
+    const { products } = await service.removeOrRestoreProduct({
       id,
       user: req.user,
     });
     success({
-      message: `Product ${result.name} restored`,
-      data: { products: [result] },
+      message: `Product ${products[0].name} restored`,
+      data: { products },
       res,
     });
     req.logger.info('Product restored', {

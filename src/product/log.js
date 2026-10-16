@@ -5,7 +5,6 @@ async function create(options) {
     const { client, action, userId, data, refId, refType } = options;
     const id = data.id;
     const { products } = await productJoin({ id });
-    console.log(products);
     await client.query(
       `
       INSERT INTO product_log

@@ -1,6 +1,8 @@
+const path = require('path');
+
 const model = require('./model');
-const redis = require('./redis');
-const AppError = require('../common/utils/AppError');
+const redis = require(path.join(__dirname, '../config/redis'));
+const AppError = require(path.join(__dirname, '../common/utils/AppError'));
 
 async function categories(options) {
   const { key } = options;
@@ -13,9 +15,6 @@ async function categories(options) {
   await redis.save({
     key,
     value: db,
-    options: {
-      EX: 300,
-    },
   });
   return db;
 }

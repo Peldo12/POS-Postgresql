@@ -5,7 +5,7 @@ const sendEmail = require('../common/helpers/email');
 const hash = require('../common/helpers/hash');
 const generateJWT = require('../common/helpers/jwt');
 const transaction = require('../common/helpers/transaction');
-const generateCrypto = require('../common/helpers/crypto');
+const { bytes } = require('../common/helpers/crypto');
 const template = require('../common/utils/template.js');
 const { pool } = require('../config/pool');
 const AppError = require('../common/utils/AppError');
@@ -32,7 +32,7 @@ async function createAndSendToken({
   subject,
   ttlMinutes = 15,
 }) {
-  const token = generateCrypto(type);
+  const token = bytes(type);
   const key = `${type}-token:${token}`;
 
   try {
@@ -63,7 +63,7 @@ async function createAndSendToken({
 // ======================
 
 /**
- * Register user baru
+ * Register
  */
 async function register({ username, email, password }) {
   const found = await model.userByUsernameOrEmail({ username, email });

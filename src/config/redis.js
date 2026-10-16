@@ -17,7 +17,54 @@ async function initRedis() {
   }
 }
 
+async function save({ key, value, options = { EX: 300 } }) {
+  await client.set(key, JSON.stringify(value), options);
+  return await client.get(key);
+}
+
+async function get(key) {
+  return JSON.parse(await client.get(key));
+}
+
+async function remove(key) {
+  await client.del(key);
+  return await get(key);
+}
+
+async function removeInvalid(keys = []) {
+  const validKeys = keys.filter(Boolean);
+  if (validKeys.length === 0) return;
+
+  await client.del(keys);
+}
+
+async function clearCache(prefix) {
+  let cursor = '0';
+  const keysToDelete = new Set();
+
+  do {
+    const { cursor: nextCursor, keys } = await client.scan(cursor, {
+      MATCH: `${prefix}:*`,
+      COUNT: 100,
+    });
+
+    cursor = nextCursor;
+
+    keys.forEach((key) => keysToDelete.add(key));
+  } while (cursor !== '0');
+
+  if (keysToDelete.size) {
+    const keys = [...keysToDelete];
+    await client.del(keys);
+  }
+}
+
 module.exports = {
   client,
   initRedis,
+  save,
+  get,
+  remove,
+  removeInvalid,
+  clearCache,
 };

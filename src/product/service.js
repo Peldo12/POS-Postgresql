@@ -2,12 +2,32 @@ const { pool } = require('../config/pool');
 const info = require('./info');
 const log = require('./log');
 const model = require('./model');
+const redis = require('../config/redis');
 const transaction = require('../common/helpers/transaction');
+const { md5 } = require('../common/helpers/crypto');
 const logger = require('../common/middleware/logger');
 const AppError = require('../common/utils/AppError');
 
+function createProductKey(options) {
+  if (options.id) return `product:${options.id}`;
+
+  return md5('products', options);
+}
+
 async function getProducts(options) {
-  return await model.productJoin(options);
+  const key = createProductKey(options);
+  const cache = await redis.get(key);
+
+  if (cache) return cache;
+
+  const db = await model.productJoin(options);
+
+  await redis.save({
+    key,
+    value: db,
+  });
+
+  return db;
 }
 
 async function createProduct(options) {
@@ -17,9 +37,7 @@ async function createProduct(options) {
   const { products } = await model.productJoin({
     id: product.id,
   });
-  if (!products.length) throw new AppError(404, 'Product not found');
-  if (product.sku !== products.sku)
-    throw new AppError(400, 'SKU cannot be changed');
+  if (products.length) throw new AppError(400, 'SKU already used');
 
   const result = await transaction(async (client) => {
     const [item] = await model.create({ client, product });
@@ -35,6 +53,7 @@ async function createProduct(options) {
       refId: item.id,
       refType: 'PRODUCT',
     });
+    await redis.clearCache('products');
     return item;
   });
   return result;
@@ -48,9 +67,11 @@ async function updateProduct(options) {
     sku: product.sku,
     categoryId: product.category_id,
   });
-  if (products.length) throw new AppError(400, 'SKU already used');
+  if (!products.length) throw new AppError(404, 'Product not found');
+  if (product.sku !== products[0].sku)
+    throw new AppError(400, 'SKU cannot be changed');
 
-  const result = await transaction(async (client) => {
+  return await transaction(async (client) => {
     const item = await model.update({
       client,
       product,
@@ -68,6 +89,7 @@ async function updateProduct(options) {
       refId: product.id,
       refType: 'PRODUCT',
     });
+    await redis.clearCache('products');
     return item;
   });
 }
@@ -91,34 +113,48 @@ async function updateStocks(options, user) {
         action: 'update',
       });
     }
+    await redis.clearCache('products');
   });
   return result;
 }
 
 async function removeOrRestoreProduct(options) {
   const { id, value = null, user } = options;
+  const isRemove = Boolean(value);
+  const { products } = await model.productJoin({
+    id,
+    deleted: isRemove ? false : true,
+  });
 
-  const exist = await getProducts({ id });
-  console.log(exist);
+  if (isRemove) {
+    if (!products.length)
+      throw new AppError(404, 'Product not found or deleted');
+  } else {
+    if (!products.length) throw new AppError(404, 'Product not deleted');
+  }
 
-  const result = await transaction(async (client) => {
-    let action = value ? 'REMOVE' : 'RESTORE';
+  await transaction(async (client) => {
+    const action = isRemove ? 'REMOVE' : 'RESTORE';
 
     const result = await model.removeOrRestore({
       client,
       ...options,
     });
-    const old = await getProducts({ id });
 
     await log.create({
       client,
-      userId: user.id,
+      userId: user.userId,
       action,
-      data: old,
-      refId: result.id,
+      data: products[0],
+      refId: result[0].product_id,
       refType: 'PRODUCT',
     });
-    return await getProducts({ id });
+  });
+  await redis.clearCache('products');
+
+  return await model.productJoin({
+    id,
+    deleted: isRemove ? true : false,
   });
 }
 

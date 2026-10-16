@@ -14,11 +14,14 @@ async function productJoin(filters) {
     orderBy = 'ASC',
     id,
     sku,
+    deleted = false,
   } = filters;
 
   const offset = (page - 1) * limit;
 
-  let whereClause = 'WHERE pi.deleted_at IS NULL';
+  let whereClause = deleted
+    ? 'WHERE pi.deleted_at IS NOT NULL'
+    : 'WHERE pi.deleted_at IS NULL';
   const params = [];
 
   if (search) {
@@ -185,12 +188,6 @@ async function removeOrRestore(options) {
       UPDATE product_info
       SET deleted_at = $${params.length}
     `;
-  if (value) {
-    params.push(user.id);
-    setClause += `, deleted_by = $${params.length}`;
-  } else {
-    setClause += `, deleted_by = NULL`;
-  }
   params.push(id);
   const { rows } = await client.query(
     `${setClause}
