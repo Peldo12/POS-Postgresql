@@ -1,0 +1,7 @@
+.env
+node_modules/
+logs/
+public/upload/*
+.DS_Store
+*.log
+injection.js

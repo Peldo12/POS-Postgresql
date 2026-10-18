@@ -1,212 +1,198 @@
 # POS Backend API
 
-Backend RESTful API untuk aplikasi Point of Sale (POS) yang dibangun menggunakan Node.js, Express.js, dan PostgreSQL. Project ini berfokus pada implementasi backend yang aman, terstruktur, dan mudah dikembangkan dengan menerapkan autentikasi JWT, Role Based Access Control (RBAC), serta pengelolaan data menggunakan PostgreSQL.
+A RESTful backend API for a Point of Sale (POS) application, built with Node.js, Express.js, and PostgreSQL. This project emphasizes security, structured code, and easy development with JWT authentication, Role-Based Access Control (RBAC), and robust data management.
 
-> Seluruh proses pengembangan dilakukan menggunakan Linux CLI berbasis Termux pada perangkat mobile.
-
----
-
-## Features
-
-### Authentication
-
-- Register User
-- Login
-- Logout
-- Access Token
-- Refresh Token
-- Password Hashing (bcrypt)
-
-### User Management
-
-- CRUD User
-- Role Based Access Control (RBAC)
-
-### Product Management
-
-- CRUD Product
-- Search
-- Pagination
-- Filtering
-- Sorting
-- Soft Delete
-
-### Category Management
-
-- CRUD Category
-
-### Security
-
-- JWT Authentication
-- Password Hashing
-- Request Validation (Joi)
-- Global Error Handler
+> Development is performed entirely via the Linux CLI in Termux on mobile devices.
 
 ---
 
-## Tech Stack
+## ✨ Features
 
-| Category | Technology |
-|----------|------------|
-| Runtime | Node.js |
-| Framework | Express.js |
-| Database | PostgreSQL |
-| Query | Raw SQL (pg) |
-| Authentication | JWT |
-| Password Security | bcrypt |
-| Validation | Joi |
-| Version Control | Git |
-| Deployment | Render |
-| Monitoring | Better Stack |
+- **Authentication**: Register, login, logout, access & refresh tokens, password hashing (bcrypt).
+- **User Management**: CRUD operations for users with RBAC.
+- **Product Management**: Full CRUD with search, pagination, filtering, sorting, and soft delete.
+- **Category Management**: CRUD for product categories.
+- **Security**: JWT authentication, password hashing, request validation (Joi), global error handling.
 
 ---
 
-## Project Structure
+## 🛠️ Tech Stack
 
-```text
+| Layer        | Technology                     |
+|--------------|--------------------------------|
+| Runtime      | Node.js                        |
+| Framework    | Express.js                     |
+| Database     | PostgreSQL                     |
+| Query        | Raw SQL via `pg`               |
+| Auth         | JWT                            |
+| Password     | bcrypt                         |
+| Validation   | Joi                            |
+| Version Control | Git                        |
+| Deployment   | Render (or custom Docker)      |
+| Monitoring   | Better Stack                   |
+
+---
+
+## 📂 Project Structure
+
+```
 src/
-├── config/
-├── controllers/
-├── middleware/
-├── models/
-├── routes/
-├── services/
-├── utils/
-├── validation/
-├── app.js
-└── server.js
+├── config/          # Database & Redis config, init scripts
+├── controllers/     # Express route handlers
+├── middleware/      # Express middleware (auth, rate limiting, logging)
+├── models/          # Database models or raw query helpers
+├── routes/          # API route definitions
+├── services/        # Business logic layer
+├── utils/           # Helper utilities
+├── validation/      # Joi validation schemas
+├── app.js           # Main Express app configuration
+└── server.js        # Server entry point (starts listening)
 ```
 
+> **Note**: The `server.js` file typically sets up the HTTP server and connects to the database. If not present, `app.js` may be used directly with a custom server script.
+
 ---
 
-## API Modules
+## 🌐 API Endpoints
 
 ### Authentication
 
-| Method | Endpoint |
-|---------|----------|
-| POST | /api/auth/register |
-| POST | /api/auth/login |
-| POST | /api/auth/logout |
-| POST | /api/auth/refresh |
-| GET | /api/auth/me |
-
----
+| Method | Endpoint            | Description                     |
+|--------|---------------------|---------------------------------|
+| POST   | `/api/auth/register`| Register a new user              |
+| POST   | `/api/auth/login`   | Authenticate & get access token  |
+| POST   | `/api/auth/logout`  | Revoke token                     |
+| POST   | `/api/auth/refresh` | Get a new access token           |
+| GET    | `/api/auth/me`      | Get current user profile         |
 
 ### Users
 
-| Method | Endpoint |
-|---------|----------|
-| GET | /api/users |
-| GET | /api/users/:id |
-| POST | /api/users |
-| PATCH | /api/users/:id |
-| DELETE | /api/users/:id |
-
----
+| Method | Endpoint          | Description                     |
+|--------|-------------------|---------------------------------|
+| GET    | `/api/users`      | List all users (admin only)     |
+| GET    | `/api/users/:id`  | Get a specific user             |
+| POST   | `/api/users`      | Create a new user                |
+| PATCH  | `/api/users/:id`  | Update user details              |
+| DELETE | `/api/users/:id`  | Delete a user                    |
 
 ### Products
 
-| Method | Endpoint |
-|---------|----------|
-| GET | /api/products |
-| GET | /api/products/:id |
-| POST | /api/products |
-| PUT | /api/products/:id/update |
-| PATCH | /api/products/:id/remove |
-| PATCH | /api/products/:id/restore |
-
----
+| Method | Endpoint               | Description                                   |
+|--------|------------------------|-----------------------------------------------|
+| GET    | `/api/products`        | List products with optional filters            |
+| GET    | `/api/products/:id`    | Get product details                            |
+| POST   | `/api/products`        | Create a new product                           |
+| PUT    | `/api/products/:id/update` | Update product details (full replace)   |
+| PATCH  | `/api/products/:id/remove` | Soft‑delete a product (mark as removed) |
+| PATCH  | `/api/products/:id/restore` | Restore a soft‑deleted product        |
 
 ### Categories
 
-| Method | Endpoint |
-|---------|----------|
-| GET | /api/categories |
-| POST | /api/categories |
-| PATCH | /api/categories/:id/remove |
-| PATCH | /api/categories/:id/restore |
+| Method | Endpoint               | Description                     |
+|--------|------------------------|---------------------------------|
+| GET    | `/api/categories`      | List categories                              |
+| POST   | `/api/categories`      | Create a new category                          |
+| PATCH  | `/api/categories/:id/remove` | Soft‑delete a category               |
+| PATCH  | `/api/categories/:id/restore` | Restore a soft‑deleted category   |
 
 ---
 
-## Installation
+## ⚙️ Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/Peldo12/POS-Postgresql.git
-
 cd POS-Postgresql
 
+# Install dependencies
 npm install
 ```
 
 ---
 
-## Environment Variables
+## 🧩 Environment Variables
 
-Create `.env`
+Create a `.env` file in the project root with the following variables (adjust values as needed):
 
 ```env
-PORT=3000
-
-DATABASE_URL=
-
-JWT_SECRET=
-
-JWT_REFRESH_SECRET=
+PORT=3000                     # Port the API listens on
+DB_HOST=localhost             # PostgreSQL host
+DB_PORT=5432                  # PostgreSQL port
+DB_USER=pos_user            # Database username
+DB_PASSWORD=your_password     # Database password
+DB_NAME=pos_db                # Database name
+JWT_SECRET=your_jwt_secret    # Secret for signing JWTs
+JWT_REFRESH_SECRET=your_refresh_secret  # Secret for refreshing tokens
 ```
+
+> **Tip**: When running in Termux, ensure you have storage permission (`termux-setup-storage`) and that any required system packages (e.g., `python`, `make`) are installed for native modules.
 
 ---
 
-## Running Project
+## 🚀 Running the Project
+
+### Development
 
 ```bash
 npm run dev
 ```
 
----
+> This script typically starts the server with nodemon for hot‑reloading.
 
-## Database
+### Production (using deployment script)
 
-Database menggunakan PostgreSQL dengan skema relasional.
+```bash
+# Make the deployment script executable
+chmod +x deploy.sh
 
-Beberapa entitas utama:
+# Run the deployment (will prompt for version)
+./deploy.sh
+```
 
-- Users
-- Roles
-- User Tokens
-- Categories
-- Products
-- Orders
-
-Diagram database akan ditambahkan pada pembaruan berikutnya.
+> The `deploy.sh` script handles database initialization, Docker image builds, and health checks.
 
 ---
 
-## Roadmap
+## 🗄️ Database
 
-- [x] Authentication
-- [x] JWT
-- [x] Refresh Token
-- [x] PostgreSQL
-- [x] Product CRUD
+The application uses PostgreSQL with a relational schema that includes:
+
+- **users** – stores user credentials and role references.
+- **roles** – defines user roles (user, admin, owner, super_admin).
+- **user_tokens** – stores JWT refresh tokens.
+- **categories** – product categories.
+- **products** – product catalog with constraints (stock ≥ 0, sell ≥ buy, etc.).
+- **orders** and **order_items** – order management.
+- Additional tables for audit logging, file storage, etc.
+
+A diagram of the schema will be added in a future update.
+
+---
+
+## 📅 Roadmap
+
+- [x] Authentication (JWT, refresh tokens)
+- [x] Role‑Based Access Control (RBAC)
+- [x] PostgreSQL integration
+- [x] Product CRUD with search, pagination, filtering, sorting
 - [x] Category CRUD
-- [x] Search
-- [x] Pagination
-- [x] Filtering
-- [x] Sorting
-- [x] Soft Delete
-- [ ] Transaction Module
-- [ ] Dashboard Statistics
-- [ ] File Upload
-- [ ] Unit Testing
-- [ ] Docker Support
+- [x] Soft delete for products and categories
+- [ ] Transaction module (order processing, stock management)
+- [ ] Dashboard statistics (sales reports, user activity)
+- [ ] File upload handling (images, receipts)
+- [ ] Unit testing (Jest/Mocha)
+- [ ] Docker support (Dockerfile, docker‑compose)
 
 ---
 
-## Author
+## 👤 Author
 
-Holifatulla
+**Holifatulla**  
+GitHub: https://github.com/Peldo12
 
-GitHub
+---
 
-https://github.com/Peldo12
+## 🙏 Acknowledgements
+
+- Inspired by modern POS systems and e‑commerce platforms.
+- Built with love using Termux on Android for mobile development.

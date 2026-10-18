@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -10,16 +12,18 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
+    "redis": "^6.3.0",
+    "telegraf": "^4.16.3",
     "winston": "^3.19.0"
   },
   "name": "pos-posgrest",
-  "version": "1.0.0",
+  "version": "0.0.2c",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js &"
+    "start": "node index.js"
   },
-  "author": "",
+  "author": "kholi",
   "license": "ISC",
   "description": "",
   "devDependencies": {

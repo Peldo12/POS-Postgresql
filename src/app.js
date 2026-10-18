@@ -1,0 +1,37 @@
+const express = require('express');
+const app = express();
+const logger = require('./common/middleware/logger');
+const cors = require('cors');
+
+app.use(express.json(), cors());
+// app.use(express.static("/public/upload"))
+
+app.disable('x-powered-by');
+
+app.get('/api/', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Welcome to POS Backend API',
+  });
+});
+
+app.get('/api/health', require('./common/helpers/health'));
+
+app.use((req, res, next) => {
+  req.logger = logger;
+  next();
+});
+
+app.use(require('./common/middleware/httpLogger'));
+
+app.use('/api/auth', require('./auth/route'));
+app.use('/api/user', require('./user/route'));
+app.use('/api/product', require('./product/route'));
+app.use('/api/order', require('./order/route'));
+// app.use("/api/trash", require('./routes/trash'))
+app.use('/api/category', require('./category/route'));
+
+app.use(require('./common/middleware/notFound'));
+app.use(require('./common/middleware/globalError'));
+
+module.exports = app;
