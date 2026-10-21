@@ -5,11 +5,16 @@ set -Eeuo pipefail
 # Config
 # ---------
 LOCK_FILE="/tmp/deploy.lock"
+PROJECT_DIR="/opt/POS-Postgresql"
 ENV_FILE="/etc/pos/production.env"
+LOG_FILE="/var/log/pos-deploy.log"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
+TIMESTAMP="$(date +%H:%M:%S)"
 
 # Stage
 # ---------
 STAGE_INIT="Init"
+STAGE_VALIDATE="Validate"
 STAGE_BACKUP="Backup"
 STAGE_PULL="Pull"
 STAGE_DEPLOY="Deploy"
@@ -36,7 +41,7 @@ NEW_VERSION=-
 # ===============
 
 log() {
-  echo "==> $1"
+  echo "==> $TIMESTAMP UTC: $1"
 }
 
 set_status() {
@@ -143,13 +148,36 @@ restore_version() {
 # Deployment
 # ===============
 
+check_image() {
+  local IMAGE="kholi12/pos-api:$NEW_VERSION"
+
+  log "Checking image $IMAGE ..."
+
+  if ! docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+    log "Image $IMAGE not found"
+    return 1
+  fi
+
+  log "Image available"
+}
+
 run_backup() {
   sudo /usr/local/bin/pos-db-backup.sh
 }
 
 start_compose() {
-  log "Start container ..."
-  docker compose up -d --no-deps --force-recreate
+  log "Recreate backend ..."
+  docker compose up -d --no-deps --force-recreate backend
+
+  log "Test Nginx config ..."
+  if ! docker compose exec -T nginx nginx -t; then
+    log "Nginx config test failed"
+    return 1
+  fi
+
+  log "Reload Nginx ..."
+  docker compose exec -T nginx nginx -s reload
+  log "Nginx reloaded successfully"
 }
 
 wait_health() {
@@ -317,12 +345,13 @@ trap cleanup EXIT
 # Main
 # ===============
 
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 log "Open folder project"
 
 acquire_lock
 
-cd /opt/POS-Postgresql
+cd "$PROJECT_DIR"
 
 init_runtime
 load_env
@@ -350,6 +379,8 @@ if ! set_version "$NEW_VERSION"; then
 fi
 
 log "Target version: $NEW_VERSION"
+
+run_stage "$STAGE_VALIDATE" check_image
 
 run_stage "$STAGE_BACKUP" run_backup
 

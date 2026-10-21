@@ -35,7 +35,7 @@ async function createProduct(options) {
   const { userId } = user;
 
   const { products } = await model.productJoin({
-    id: product.id,
+    sku: product.sku,
   });
   if (products.length) throw new AppError(400, 'SKU already used');
 
@@ -53,7 +53,7 @@ async function createProduct(options) {
       refId: item.id,
       refType: 'PRODUCT',
     });
-    await redis.clearCache('products');
+    await redis.clearCache(['products', 'product']);
     return item;
   });
   return result;
@@ -89,7 +89,7 @@ async function updateProduct(options) {
       refId: product.id,
       refType: 'PRODUCT',
     });
-    await redis.clearCache('products');
+    await redis.clearCache(['products', 'product']);
     return item;
   });
 }
@@ -120,7 +120,7 @@ async function updateStocks(options, user) {
         action: 'update',
       });
     }
-    await redis.clearCache('products');
+    await redis.clearCache(['products', 'product']);
   });
   return result;
 }
@@ -157,7 +157,7 @@ async function removeOrRestoreProduct(options) {
       refType: 'PRODUCT',
     });
   });
-  await redis.clearCache('products');
+  await redis.clearCache(['products', 'product']);
 
   return await model.productJoin({
     id,

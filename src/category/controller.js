@@ -44,7 +44,7 @@ async function byId(req, res, next) {
 
     const categories = await service.categories({
       id,
-      key: `categories:${id}`,
+      key: `category:${id}`,
     });
     if (categories.length === 0) throw new AppError(404, 'Category not found');
 
@@ -116,7 +116,7 @@ async function update(req, res, next) {
       ...req.body,
       id,
       update: true,
-      key: `categories:${id}`,
+      key: `category:${id}`,
       userId,
     });
     success({
@@ -151,7 +151,7 @@ async function remove(req, res, next) {
       id,
       value: dateNow(),
       update: true,
-      key: `categories:${id}`,
+      key: `category:${id}`,
       userId,
     });
     success({
@@ -186,7 +186,7 @@ async function restore(req, res, next) {
       id,
       value: null,
       update: true,
-      key: `categories:${id}`,
+      key: `category:${id}`,
       userId,
     });
 

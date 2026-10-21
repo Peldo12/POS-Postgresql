@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 const control = require('./controller');
+const validate = require('../common/middleware/validate');
 
-const validateBody = require('../common/middleware/validateBody');
 const {
   createSchema,
   refreshSchema,
@@ -24,7 +24,7 @@ const { fiveMin } = require('../config/rateLimitTime');
 router.post(
   '/register',
   limit(authLimit),
-  validateBody(createSchema),
+  validate.body(createSchema),
   control.register
 );
 
@@ -33,20 +33,20 @@ router.get('/verify', limit(authLimit), control.verify);
 router.post(
   '/re-verify',
   limit(authLimit),
-  validateBody(loginSchema),
+  validate.body(loginSchema),
   control.resendVerify
 );
 
 router.post(
   '/login',
-  validateBody(loginSchema),
+  validate.body(loginSchema),
   limit(authLimit, fiveMin),
   control.login
 );
 
 router.get('/me', authenticate, control.me);
 
-router.post('/refresh', validateBody(refreshSchema), authBody, control.token);
+router.post('/refresh', validate.body(refreshSchema), authBody, control.token);
 
 router.post(
   '/logout',
@@ -58,14 +58,14 @@ router.post(
 
 router.post(
   '/forgot',
-  validateBody(forgotSchema),
+  validate.body(forgotSchema),
   limit(authLimit),
   control.forgotPass
 );
 
 router.patch(
   '/reset',
-  validateBody(newPass),
+  validate.body(newPass),
   limit(authLimit),
   control.resetPass
 );

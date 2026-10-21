@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
-const { orders, byId, create } = require('./controller');
+const control = require('./controller');
 const { authenticate } = require('../common/middleware/authentication');
 
 const limit = require('../common/middleware/limiter');
 const { transactionLimit } = require('../config/rateLimitConfig');
 const { oneMin, fiveMin } = require('../config/rateLimitTime');
 
-const validateBody = require('../common/middleware/validateBody');
-const validateQuery = require('../common/middleware/validateQuery');
-const { createSchema, filterSchema } = require('./validator');
+const validate = require('../common/middleware/validate');
+const { createSchema, filterSchema, orderIdSchema } = require('./validator');
 
 const authorize = require('../common/middleware/authorize');
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
@@ -24,18 +23,29 @@ router.get(
   '/',
   limit(25, fiveMin),
   authorize(all),
-  validateQuery(filterSchema),
-  orders
+  validate.query(filterSchema),
+  control.orders
 );
 
-router.get('/:id', byId);
+router.get('/:orderId', validate.params(orderIdSchema), control.byId);
 
 router.post(
   '/create',
   limit(transactionLimit, oneMin),
   authorize(strict),
-  validateBody(createSchema),
-  create
+  validate.body(createSchema),
+  control.create
+);
+
+router.patch(
+  '/:orderId/remove',
+  validate.params(orderIdSchema),
+  control.remove
+);
+router.patch(
+  '/:orderId/restore',
+  validate.params(orderIdSchema),
+  control.restore
 );
 
 module.exports = router;

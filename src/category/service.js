@@ -32,15 +32,8 @@ async function createOrUpdate(options) {
   } else {
     result = await model.updateCategory(options);
   }
-  try {
-    const list = await categories({ key: 'categories:all' });
-    const keyAll = list.map((el) => (el.id = `categories:${el.id}`));
-    keyAll.push('categories:all');
 
-    await redis.removeInvalid(keyAll);
-  } catch (error) {
-    console.log(error.message, (stack = error.stack));
-  }
+  await redis.clearCache(['categories', 'category']);
 
   return result;
 }

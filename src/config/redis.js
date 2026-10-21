@@ -31,32 +31,32 @@ async function remove(key) {
   return await get(key);
 }
 
-async function removeInvalid(keys = []) {
-  const validKeys = keys.filter(Boolean);
-  if (validKeys.length === 0) return;
+async function clearCache(list = []) {
+  if (!Array.isArray(list)) throw new Error('Invalid type to clear');
+  if (!list.length) throw new Error('Empty list to clear');
 
-  await client.del(keys);
-}
+  let deleted = 0;
+  for (let prefix of list) {
+    let cursor = '0';
+    const keysToDelete = new Set();
 
-async function clearCache(prefix) {
-  let cursor = '0';
-  const keysToDelete = new Set();
+    do {
+      const { cursor: nextCursor, keys } = await client.scan(cursor, {
+        MATCH: `${prefix}:*`,
+        COUNT: 100,
+      });
 
-  do {
-    const { cursor: nextCursor, keys } = await client.scan(cursor, {
-      MATCH: `${prefix}:*`,
-      COUNT: 100,
-    });
+      cursor = nextCursor;
 
-    cursor = nextCursor;
+      keys.forEach((key) => keysToDelete.add(key));
+    } while (cursor !== '0');
 
-    keys.forEach((key) => keysToDelete.add(key));
-  } while (cursor !== '0');
-
-  if (keysToDelete.size) {
-    const keys = [...keysToDelete];
-    await client.del(keys);
+    if (keysToDelete.size) {
+      const keys = [...keysToDelete];
+      deleted += await client.del(keys);
+    }
   }
+  return deleted;
 }
 
 module.exports = {
@@ -65,6 +65,5 @@ module.exports = {
   save,
   get,
   remove,
-  removeInvalid,
   clearCache,
 };

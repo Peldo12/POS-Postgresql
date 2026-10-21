@@ -2,7 +2,6 @@ const generateCrypto = require('../common/helpers/crypto');
 const dateNow = require('../common/helpers/date');
 
 const service = require('./service');
-const { orderJoin, orderById } = require('./model');
 const success = require('../common/helpers/response');
 const sendEmail = require('../common/helpers/email');
 const AppError = require('../common/utils/AppError');
@@ -10,41 +9,64 @@ const AppError = require('../common/utils/AppError');
 async function orders(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+
     const filters = {
-      productId: req.query.productId || '',
+      search: req.query.search || '',
       method: req.query.method || '',
+      status: req.query.status || '',
+      date: req.query.date || null,
+      range: req.query.range || null,
+      start: req.query.start || null,
+      end: req.query.end || null,
       page: +req.query.page || 1,
       limit: +req.query.limit || 10,
-      sort: req.query.sort || 'id',
-      orderBy: req.query.order || 'ASC',
+      sort: req.query.sort || 'createdAt',
+      orderBy: req.query.orderBy || 'DESC',
     };
 
-    const data = await service.orders(filters);
+    const { orders, pagination } = await service.orders(filters);
 
     success({
       message: 'Orders are loaded',
-      data,
+      data: { orders },
+      pagination,
       res,
     });
-    req.logger.info(`Orders requested by ${req.user.username}`, {
-      user: req.user.username,
-      requested_at: dateNow('iso'),
+    req.logger.info('Orders loaded', {
+      userId,
+      username,
+      resource: 'orders',
+      resourceId: 'all',
+      action: 'load',
     });
   } catch (error) {
-    req.logger.error('Failed on request orders', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
 
 async function byId(req, res, next) {
   try {
-    const data = await service.byId(req.params.id);
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+    const { orderId } = req.params;
+    const data = await service.detailOrders({ orderId });
+
     success({
-      message: `Order id ${req.params.id} loaded`,
-      data: { orders: data },
+      message: 'Order details loaded',
+      data: { order: data },
       res,
     });
+    req.logger.info('Order id loaded', {
+      userId,
+      username,
+      resource: 'orders',
+      resourceId: orderId,
+      action: 'load',
+    });
   } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
@@ -52,33 +74,90 @@ async function byId(req, res, next) {
 async function create(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
     const { products, payment } = req.body;
     if (!Array.isArray(products) || products.length === 0)
       throw new AppError(400, 'Invalid or empty transactions');
-    const data = await service.create({
-      user: {
-        id: req.user.id,
-        role: req.user.role,
-      },
+
+    const { id } = await service.create({
+      userId,
+      username,
       products,
-      payment: {
-        method: payment.method,
-        total: payment.total,
-      },
+      payment,
     });
+
     success({
       message: 'Orders successfuly saved',
-      data,
+      data: { orderId: id },
       res,
     });
-    req.logger.info(`Order created by user ${req.user.username}`, {
-      user: req.user.username,
-      created_at: dateNow('iso'),
+    req.logger.info('Order created', {
+      userId,
+      username,
+      resource: 'orders',
+      resourceId: id,
+      action: 'create',
     });
   } catch (error) {
-    req.logger.error('Failed on create order', { error });
+    req.logger.error(error.message, { stack: error.stack });
     next(error);
   }
 }
 
-module.exports = { orders, byId, create };
+async function remove(req, res, next) {
+  try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+    const { orderId } = req.params;
+
+    const { id } = await service.removeOrRestore({
+      orderId,
+      value: new Date(),
+    });
+
+    success({
+      message: 'Orders successfuly removed',
+      res,
+    });
+    req.logger.info('Order removed', {
+      userId,
+      username,
+      resource: 'orders',
+      resourceId: orderId,
+      action: 'remove',
+    });
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
+  }
+}
+
+async function restore(req, res, next) {
+  try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+    const { userId, username } = req.user;
+    const { orderId } = req.params;
+
+    const { id } = await service.removeOrRestore({
+      orderId,
+      value: null,
+    });
+
+    success({
+      message: 'Orders successfuly restored',
+      res,
+    });
+    req.logger.info('Order restored', {
+      userId,
+      username,
+      resource: 'orders',
+      resourceId: orderId,
+      action: 'restore',
+    });
+  } catch (error) {
+    req.logger.error(error.message, { stack: error.stack });
+    next(error);
+  }
+}
+
+module.exports = { orders, byId, create, remove, restore };

@@ -1,6 +1,8 @@
 const service = require('./service');
-const success = require('../common/helpers/response');
 const dateNow = require('../common/helpers/date');
+
+const success = require('../common/helpers/response');
+const AppError = require('../common/utils/AppError');
 
 /**
  * @desc get all products
@@ -57,7 +59,7 @@ async function byId(req, res, next) {
     const { id } = req.params;
 
     const { products } = await service.getProducts({ id });
-    if (!products) throw new AppError(404, 'Product not found');
+    if (!products.length) throw new AppError(404, 'Product not found');
 
     success({
       message: 'Product are loaded',

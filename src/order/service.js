@@ -1,83 +1,167 @@
 const model = require('./model');
+const redis = require('../config/redis');
 const productLog = require('../product/log');
-const { pool } = require('../config/pool');
+const productService = require('../product/service');
+const AppError = require('../common/utils/AppError');
+const logger = require('../common/middleware/logger');
+const transaction = require('../common/helpers/transaction');
+const generateInvoice = require('../common/helpers/invoice');
+const { md5 } = require('../common/helpers/crypto');
 
-async function orders(filters) {
-  try {
-    return await model.orderJoin(filters);
-  } catch (error) {
-    throw error;
-  }
+function createKey(options) {
+  if (options.orderId) return `order:${options.orderId}`;
+
+  return md5('orders', options);
 }
 
-async function byId(id) {
-  try {
-    return await model.orderById(id);
-  } catch (error) {
-    throw error;
-  }
+async function orders(options) {
+  const key = createKey(options);
+  const cache = await redis.get(key);
+
+  if (cache) return cache;
+
+  const db = await model.getOrders(options);
+  await redis.save({ key, value: db });
+
+  return db;
+}
+
+async function detailOrders(options) {
+  const { orderId } = options;
+  const key = createKey(options);
+
+  const cache = await redis.get(key);
+  if (cache) return cache;
+
+  const { orders: order } = await model.getOrders({ id: orderId });
+  if (!order.length) throw new AppError(404, 'Order not found');
+
+  const items = await model.getItems({ orderId });
+  const result = { ...order[0], items };
+  await redis.save({ key, value: result });
+
+  return result;
 }
 
 async function create(options) {
-  const client = await pool.connect();
-  try {
-    const { user, products, payment } = options;
-    const result = [];
-    let sumTotal = 0;
+  return await transaction(async (client) => {
+    const { userId, username, products, payment } = options;
+    const { discount, tax, method } = payment;
 
-    await client.query('BEGIN');
+    const invoice = await generateInvoice();
 
+    const items = [];
+    let subtotal = 0;
+    for (let product of products) {
+      const { products: exist } = await productService.getProducts({
+        id: product.id,
+      });
+      if (!exist.length) throw new AppError(404, 'Product not found');
+      if (exist[0].stock < product.quantity)
+        throw new AppError(400, 'Insufficient product stock');
+
+      const { id: productId, name: productName, sell: price } = exist[0];
+
+      subtotal += price * product.quantity;
+      items.push({
+        productId,
+        productName,
+        price,
+        quantity: product.quantity,
+        subtotal: price * product.quantity,
+      });
+    }
+
+    const total = subtotal - discount + tax;
+    if (total < 0) throw new AppError(400, 'Invalid total order');
     const order = await model.create({
       client,
-      user,
-      payment,
+      userId,
+      payment: {
+        invoice,
+        subtotal,
+        discount,
+        tax,
+        total,
+        method,
+      },
     });
 
-    for (let product of products) {
-      const { id, quantity, sell } = product;
-      const item = await model.getSell(client, id);
-
-      if (item.rowCount === 0) throw new AppError(404, 'Product not found');
-      if (item.rows[0].sell !== sell)
-        throw new AppError(400, `Invalid price product ${id}`);
-      const realPrice = item.rows[0].sell;
-      sumTotal += realPrice * quantity;
-
+    for (let item of items) {
       await model.detail({
         client,
-        orderId: order.id,
-        productId: id,
-        quantity,
-        realPrice,
+        order: {
+          orderId: order.id,
+          ...item,
+        },
       });
+
+      const updated = await model.decreaseStock({
+        client,
+        productId: item.productId,
+        quantity: item.quantity,
+      });
+      if (!updated.rowCount)
+        throw new AppError(400, 'Insufficient product stock');
+
       await productLog.create({
         client,
         action: 'STOCK_OUT',
-        userId: user.id,
-        data: product,
-        refId: order.id,
+        userId,
+        data: { ...item, id: item.productId },
+        refId: item.productId,
         refType: 'ORDER',
       });
 
-      const updateProduct = await model.updateStock({
-        client,
-        quantity,
-        id,
+      logger.info('Product stock updated', {
+        userId,
+        username,
+        resource: 'products',
+        resourceId: item.productId,
+        action: 'update',
       });
-      if (updateProduct.rowCount === 0)
-        throw new AppError(400, `Insufficient stock for product ${id}`);
-
-      result.push({ status: 'success', product: id });
     }
-
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.release();
-  }
+    await redis.clearCache(['products', 'product', 'orders', 'order']);
+    return order;
+  });
 }
 
-module.exports = { orders, create };
+async function removeOrRestore(options) {
+  const { orderId, value } = options;
+  const isRemove = Boolean(value);
+
+  const { orders } = await model.getOrders({
+    id: orderId,
+    deleted: isRemove ? false : true,
+  });
+  if (isRemove) {
+    if (!orders.length) throw new AppError(404, 'Order not found or deleted');
+  } else {
+    if (!orders.length) throw new AppError(404, 'Order not deleted');
+  }
+
+  const result = await transaction(async (client) => {
+    const removed = await model.removeOrRestoreOrder({ ...options, client });
+    return { id: removed.id };
+  });
+
+  await redis.clearCache(['products', 'product', 'orders', 'order']);
+  return result;
+}
+
+async function updateStatus(options) {
+  const { orderId } = options;
+  const { orders: order } = await model.getOrders({ id: orderId });
+
+  if (!order.length) throw new AppError(404, 'Order not found');
+
+  return transaction(async (client) => {
+    await model.updateStatusOrder({ client, orderId });
+  });
+}
+
+async function getStats(options) {
+  return await model.orderStats(options);
+}
+
+module.exports = { create, orders, detailOrders, removeOrRestore, getStats };

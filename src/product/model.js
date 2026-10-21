@@ -85,6 +85,19 @@ async function productJoin(filters) {
   };
 }
 
+async function getPrice(client, id) {
+  const { rows } = await pool.query(
+    `
+    SELECT name, sell::int
+    FROM products 
+    WHERE id = $1
+    `,
+    [id]
+  );
+
+  return rows[0];
+}
+
 async function create(options) {
   const { client, product } = options;
   const {
@@ -260,6 +273,7 @@ async function statsProducts() {
 
 module.exports = {
   productJoin,
+  getPrice,
   create,
   update,
   increaseStock,

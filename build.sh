@@ -1,9 +1,13 @@
 #!/bin/bash
 
-set -e
+set -Eeuo pipefail
+
+# Config
+TIMESTAMP="$(date +%H:%M:%S)"
+USERNAME="$(docker system info | grep Username)"
 
 log() {
-  echo "==> $1"
+  echo "==> $TIMESTAMP UTC: $1"
 }
 
 log "File chekhing ..."
@@ -34,6 +38,7 @@ log "Building image ..."
 
 if ! docker build . -t kholi12/pos-api:"$NEW_VERSION"; then
   log "Failed building image !!"
+  exit 1
 else
   log "Image $NEW_VERSION has been build"
 fi
@@ -41,6 +46,7 @@ fi
 log "Push image ..."
 if ! docker push kholi12/pos-api:"$NEW_VERSION"; then
   log "Failed push image !!"
+  exit 1
 else
   log "Image $NEW_VERSION has successfully pushed"
 fi

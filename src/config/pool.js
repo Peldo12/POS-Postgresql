@@ -142,29 +142,52 @@ async function initDB() {
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT REFERENCES roles(name) ON DELETE CASCADE,
-    total NUMERIC NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_number VARCHAR(30) UNIQUE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+
+    subtotal NUMERIC(12,0) NOT NULL,
+    discount NUMERIC(12,0) DEFAULT 0,
+    tax NUMERIC(12,0) DEFAULT 0,
+    total NUMERIC(12,0) NOT NULL,
+
     method VARCHAR(32) DEFAULT 'cash',
+    payment_status VARCHAR(20) DEFAULT 'paid',
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
-    
-    CHECK (total >= 0)
+
+    CHECK (total >= 0),
+    CHECK (method IN ('cash', 'qris')),
+    CHECK (payment_status IN ('pending', 'paid', 'cancelled'))
     )`);
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
-    product_id INTEGER REFERENCES products(id) ON DELETE SET NULL NOT NULL,
-    quantity NUMERIC NOT NULL,
-    sell NUMERIC NOT NULL,
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
+    
+    product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+    product_name TEXT NOT NULL,
+    
+    quantity INTEGER NOT NULL,
+    price NUMERIC(12,0) NOT NULL,
+    subtotal NUMERIC(12,0) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     CHECK (quantity > 0),
-    CHECK (sell >= 0)
+    CHECK (price >= 0),
+    CHECK (subtotal >= 0)
     
     )`);
+
+    await pool.query(`
+    CREATE SEQUENCE IF NOT EXISTS invoice_sequence
+    START 1
+    INCREMENT 1
+    `);
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS cloud_files (
