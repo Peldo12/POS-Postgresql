@@ -7,6 +7,7 @@ PROJECT_DIR="/opt/POS-Postgresql"
 IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
 MISSING=-
+SERVICE_NAME="backend"
 
 # Stage
 # ---------
@@ -121,44 +122,74 @@ build_image() {
   log "Image build successfully"
 }
 
+wait_health() {
+  local COUNT=0
+  local MAX_RETRY=30
+  local CONTAINER_ID=-
+  local HEALTH_STATUS=-
+
+  if ! CONTAINER_ID=$(docker compose ps -q "$SERVICE_NAME"); then
+    log "Failed to get backend container id !!"
+    return 1
+  fi
+
+  if [[ -z "$CONTAINER_ID" ]]; then
+    log "Backend container not found !!"
+    return 1
+  fi
+
+  while (( COUNT < MAX_RETRY ))
+  do
+    if ! HEALTH_STATUS=$(docker inspect \
+      --format='{{.State.Health.Status}}' \
+      "$CONTAINER_ID"); then
+      log "Failed to inspect container"
+      return 1
+    fi
+
+    case "$HEALTH_STATUS" in
+      healthy)
+        log "API is healthy"
+        return 0
+        ;;
+
+      unhealthy)
+        log "API is unhealthy"
+        return 1
+        ;;
+
+      starting)
+        ((++COUNT))
+        log "Waiting API ... ($COUNT/$MAX_RETRY)"
+        ;;
+
+      *)
+        log "Unknown health status: $HEALTH_STATUS"
+        return 1
+        ;;
+    esac
+
+    sleep 3
+  done
+
+  log "API health timeout after $MAX_RETRY attempts"
+  return 1
+}
+
 test_image() {
   log "Testing image $IMAGE ..."
 
-  CONTAINER="test-$NEW_VERSION"
+  export APP_VERSION="CURRENT_VERSION"
 
-  docker run -d \
-    --name "$CONTAINER" \
-    -e NODE_ENV=production \
-    "$IMAGE" >/dev/null
+  if ! docker compose -f compose-dev.yml up -d --no-deps --force-recreate "$SERVICE_NAME";then
+    fail "Failure to start compose"
 
   log "Waiting health check ..."
+  wait_health
 
-  for i in {1..30}; do
-    STATUS=$(docker inspect \
-      --format='{{.State.Health.Status}}' \
-      "$CONTAINER" 2>/dev/null || echo "starting")
+  docker compose down --dry-run pos-test
 
-    if [[ "$STATUS" == "healthy" ]]; then
-      docker rm -f "$CONTAINER" >/dev/null
-
-      log "Image test successful"
-      return 0
-    fi
-
-    if [[ "$STATUS" == "unhealthy" ]]; then
-      docker logs "$CONTAINER" || true
-      docker rm -f "$CONTAINER" >/dev/null
-
-      fail "Image health check failed"
-    fi
-
-    sleep 2
-  done
-
-  docker logs "$CONTAINER" || true
-  docker rm -f "$CONTAINER" >/dev/null
-
-  fail "Image health timeout"
+  log "Image is healthy"
 }
 
 push_image() {
