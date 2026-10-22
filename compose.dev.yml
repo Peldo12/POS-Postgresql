@@ -1,6 +1,6 @@
 services:
   api-test:
-    image: kholi12/pos-api:${VERSION}
+    image: kholi12/pos-api:${CURRENT_VERSION}
     container_name: api-test
     environment:
       NODE_ENV: production
