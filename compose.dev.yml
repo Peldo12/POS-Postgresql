@@ -1,15 +1,8 @@
-name: pos-test
 services:
-  # Layanan Aplikasi Backend Node.js
-  backend:
-    image: kholi12/pos-api:${APP_VERSION}
+  api-test:
+    image: kholi12/pos-api:${VERSION}
     container_name: api-test
-    networks:
-      - test_network
-    env_file:
-      - /etc/pos/production.env
+    environment:
+      NODE_ENV: production
     ports:
       - "3001:3000"
-
-networks:
-  test_network:
