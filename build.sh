@@ -18,6 +18,7 @@ STAGE_FILECHECK="File Check"
 STAGE_AUTH="Registry Auth"
 STAGE_TAG="Check Tag"
 STAGE_BUILD="Build"
+STAGE_TEST="Test"
 STAGE_PUSH="Push"
 
 # Runtime
@@ -120,6 +121,29 @@ build_image() {
   log "Image build successfully"
 }
 
+test_image() {
+  log "Testing image $IMAGE ..."
+
+  CONTAINER="test-$NEW_VERSION"
+
+  docker run -d \
+    --name "$CONTAINER" \
+    -e NODE_ENV=production \
+    "$IMAGE"
+
+  sleep 5
+
+  if ! docker ps | grep -q "$CONTAINER"; then
+    docker logs "$CONTAINER" || true
+    docker rm -f "$CONTAINER" || true
+    fail "Image failed to start"
+  fi
+
+  docker rm -f "$CONTAINER"
+
+  log "Image test successful"
+}
+
 push_image() {
   log "Push image $IMAGE ..."
 
@@ -197,6 +221,8 @@ run_stage "$STAGE_FILECHECK" file_check
 run_stage "$STAGE_TAG" tag_check
 
 run_stage "$STAGE_BUILD" build_image
+
+run_stage "$STAGE_TEST" test_image
 
 run_stage "$STAGE_PUSH" push_image
 
