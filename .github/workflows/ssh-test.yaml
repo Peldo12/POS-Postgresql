@@ -16,7 +16,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: deploy
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_DEPLOY }}
           script: |
             echo "Connected user:"
             whoami
