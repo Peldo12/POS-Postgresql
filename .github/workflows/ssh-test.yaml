@@ -20,8 +20,8 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_DIR }} 
     
-            git fetch test/auto
-            git checkout main
+            git fetch origin
+            git checkout test/auto
             git pull --ff-only
 
             pos-deploy ${{ secrets.VERSION }}
