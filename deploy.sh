@@ -10,6 +10,8 @@ ENV_FILE="/etc/pos/production.env"
 LOG_FILE="/var/log/pos-deploy.log"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
 TIMESTAMP="$(date +%H:%M:%S)"
+IMAGE_REPO="kholi12/pos-api"
+SERVICE_NAME="backend"
 
 # Stage
 # ---------
@@ -149,7 +151,7 @@ restore_version() {
 # ===============
 
 check_image() {
-  local IMAGE="kholi12/pos-api:$NEW_VERSION"
+  local IMAGE="$IMAGE_REPO:$NEW_VERSION"
 
   log "Checking image $IMAGE ..."
 
@@ -167,7 +169,7 @@ run_backup() {
 
 start_compose() {
   log "Recreate backend ..."
-  docker compose up -d --no-deps --force-recreate backend
+  docker compose up -d --no-deps --force-recreate "$SERVICE_NAME"
 
   log "Test Nginx config ..."
   if ! docker compose exec -T nginx nginx -t; then
@@ -186,7 +188,7 @@ wait_health() {
   local CONTAINER_ID=-
   local HEALTH_STATUS=-
 
-  if ! CONTAINER_ID=$(docker compose ps -q backend); then
+  if ! CONTAINER_ID=$(docker compose ps -q "$SERVICE_NAME"); then
     log "Failed to get backend container id"
     return 1
   fi
@@ -259,7 +261,7 @@ rollback() {
 show_container_logs() {
   log "Last backend logs ..."
 
-  docker compose logs --tail 50 backend || true
+  docker compose logs --tail 50 "$SERVICE_NAME" || true
 }
 
 # ===============
