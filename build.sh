@@ -66,8 +66,7 @@ version_check() {
   log "Check given version ..."
 
   if [[ -z "$1" ]]; then
-    set_status "FAILED" "No version given, exit !!"
-    exit 1
+    fail "No version given, exit !!"
   fi
 
   CURRENT_VERSION="$1"
@@ -111,10 +110,11 @@ tag_check() {
 build_image() {
   log "Building image $IMAGE ..."
 
-  docker build \
+  if ! docker build \
     --label "version=$NEW_VERSION" \
     --label "build_date=$(date -u)" \
-    -t "$IMAGE" .
+    -t "$IMAGE" .;then
+    fail "Failure to build image" 
   
   log "Image build successfully"
 }
