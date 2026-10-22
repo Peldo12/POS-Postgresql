@@ -124,23 +124,41 @@ build_image() {
 test_image() {
   log "Testing image $IMAGE ..."
 
-  export VERSION="$CURRENT_VERSION"
-  CONTAINER="api-test"
+  CONTAINER="test-$NEW_VERSION"
 
-  docker compose -f compose.dev.yml up -d
+  docker run -d \
+    --name "$CONTAINER" \
+    -e NODE_ENV=production \
+    "$IMAGE" >/dev/null
 
-  sleep 5
+  log "Waiting health check ..."
 
-  if ! docker ps | grep -q "$CONTAINER"; then
-    docker logs "$CONTAINER" || true
-    docker rm -f "$CONTAINER" || true
-    fail "Image failed to start"
-  fi
+  for i in {1..30}; do
+    STATUS=$(docker inspect \
+      --format='{{.State.Health.Status}}' \
+      "$CONTAINER" 2>/dev/null || echo "starting")
 
-  docker compose down
-  docker rm -f "$CONTAINER"
+    if [[ "$STATUS" == "healthy" ]]; then
+      docker rm -f "$CONTAINER" >/dev/null
 
-  log "Image test successful"
+      log "Image test successful"
+      return 0
+    fi
+
+    if [[ "$STATUS" == "unhealthy" ]]; then
+      docker logs "$CONTAINER" || true
+      docker rm -f "$CONTAINER" >/dev/null
+
+      fail "Image health check failed"
+    fi
+
+    sleep 2
+  done
+
+  docker logs "$CONTAINER" || true
+  docker rm -f "$CONTAINER" >/dev/null
+
+  fail "Image health timeout"
 }
 
 push_image() {
