@@ -7,6 +7,7 @@ PROJECT_DIR="/opt/POS-Postgresql"
 IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
 MISSING=-
+COMPOSE_FILE="compose.dev.yml"
 SERVICE_NAME="backend-test"
 
 # Stage
@@ -128,7 +129,7 @@ wait_health() {
   local CONTAINER_ID=-
   local HEALTH_STATUS=-
 
-  if ! CONTAINER_ID=$(docker compose ps -q "$SERVICE_NAME"); then
+  if ! CONTAINER_ID=$(docker compose -r "$COMPOSE_FILE" ps -q "$SERVICE_NAME"); then
     log "Failed to get backend container id !!"
     return 1
   fi
@@ -181,7 +182,7 @@ test_image() {
 
   export APP_VERSION="$CURRENT_VERSION"
 
-  if ! docker compose -f compose.dev.yml up -d --no-deps --force-recreate "$SERVICE_NAME";then
+  if ! docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate "$SERVICE_NAME";then
     fail "Failure to start compose"
   fi
 
