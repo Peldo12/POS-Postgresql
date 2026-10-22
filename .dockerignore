@@ -1,6 +1,7 @@
 .env
 node_modules/
 logs/
+backups/
 public/upload/*
 .DS_Store
 *.log
