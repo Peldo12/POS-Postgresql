@@ -81,8 +81,7 @@ registry_auth_check() {
   log "Checking registry authentication ..."
 
   if ! docker info | grep -q "Username"; then
-    set_status "FAILED" "Docker registry not authenticated"
-    exit 1
+    fail "Docker registry not authenticated"
   fi
 
   log "Registry authenticated"
@@ -92,9 +91,7 @@ tag_check() {
   log "Checking image tag $IMAGE ..."
 
   if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-    set_status "FAILED" "Image tag already exists"
-    log "Image already exists"
-    exit 1
+    fail "Image tag already exists"
   fi
 
   log "Tag available"
@@ -158,6 +155,11 @@ run_stage() {
   shift
 
   "$@"
+}
+
+fail() {
+  set_status "FAILED" "$1"
+  exit 1
 }
 
 # ===============
