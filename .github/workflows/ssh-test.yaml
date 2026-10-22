@@ -18,6 +18,11 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_DEPLOY }}
           script: |
-            echo "Deploy:..." 
-            pos-deploy 0.0.2c
+            cd $PROJECT_DIR
+    
+            git fetch test/auto
+            git checkout main
+            git pull --ff-only
+
+            pos-deploy $VERSION
             
