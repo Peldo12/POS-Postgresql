@@ -9,7 +9,6 @@ PROJECT_DIR="/opt/POS-Postgresql"
 ENV_FILE="/etc/pos/production.env"
 LOG_FILE="/var/log/pos-deploy.log"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
-TIMESTAMP="$(date +%H:%M:%S)"
 IMAGE_REPO="kholi12/pos-api"
 SERVICE_NAME="backend"
 
@@ -43,7 +42,7 @@ NEW_VERSION=-
 # ===============
 
 log() {
-  echo "==> $TIMESTAMP UTC: $1"
+  echo "==> $(date +%H:%M:%S) UTC: $1"
 }
 
 set_status() {
