@@ -124,6 +124,7 @@ build_image() {
 test_image() {
   log "Testing image $IMAGE ..."
 
+  export "$CURRENT_VERSION" 
   CONTAINER="api-test"
 
   docker compose -f compose.dev.yml up
