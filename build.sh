@@ -124,12 +124,9 @@ build_image() {
 test_image() {
   log "Testing image $IMAGE ..."
 
-  CONTAINER="test-$NEW_VERSION"
+  CONTAINER="api-test"
 
-  docker run -d \
-    --name "$CONTAINER" \
-    -e NODE_ENV=production \
-    "$IMAGE"
+  docker compose -f compose.dev.yaml up
 
   sleep 5
 
@@ -139,6 +136,7 @@ test_image() {
     fail "Image failed to start"
   fi
 
+  docker compose down
   docker rm -f "$CONTAINER"
 
   log "Image test successful"
