@@ -2,6 +2,9 @@ name: Test SSH Deploy
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - test/auto
 
 jobs:
   test:
