@@ -188,7 +188,7 @@ test_image() {
   log "Waiting health check ..."
   wait_health
 
-  docker compose down --dry-run pos-test
+  docker compose down --dry-run "pos-test-$SERVICE_NAME-1"
 
   log "Image is healthy"
 }
