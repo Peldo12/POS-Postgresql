@@ -127,7 +127,7 @@ test_image() {
   export VERSION="$CURRENT_VERSION"
   CONTAINER="api-test"
 
-  docker compose -f compose.dev.yml up
+  docker compose -f compose.dev.yml up -d
 
   sleep 5
 
