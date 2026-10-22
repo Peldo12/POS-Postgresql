@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   # Layanan 3: Aplikasi Backend Node.js
-  backend:
+  backend-test:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - test_network

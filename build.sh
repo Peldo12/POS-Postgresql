@@ -7,7 +7,7 @@ PROJECT_DIR="/opt/POS-Postgresql"
 IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
 MISSING=-
-SERVICE_NAME="backend"
+SERVICE_NAME="backend-test"
 
 # Stage
 # ---------
@@ -188,7 +188,7 @@ test_image() {
   log "Waiting health check ..."
   wait_health
 
-  docker compose down --dry-run pos-test-"$SERVICE_NAME"-1
+  docker compose down --dry-run "$SERVICE_NAME"
 
   log "Image is healthy"
 }
