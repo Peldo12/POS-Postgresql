@@ -115,6 +115,7 @@ build_image() {
     --label "build_date=$(date -u)" \
     -t "$IMAGE" .;then
     fail "Failure to build image" 
+  fi
   
   log "Image build successfully"
 }
