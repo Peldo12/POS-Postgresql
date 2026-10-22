@@ -1,4 +1,4 @@
-name: Test SSH Deploy
+name: SSH Test
 
 on:
   workflow_dispatch:
@@ -18,5 +18,12 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "Connected user:"
             whoami
+
+            echo "User groups:"
+            id
+
+            echo "Docker status:"
             docker ps
+            
