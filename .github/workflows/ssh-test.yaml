@@ -18,15 +18,6 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_DEPLOY }}
           script: |
-            echo "Connected user:"
-            whoami
-
-            echo "User groups:"
-            id
-
-            echo "Docker status:"
-            docker ps
-
             echo "Deploy:..." 
             pos-deploy 0.0.2c
             
