@@ -18,11 +18,11 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_DEPLOY }}
           script: |
-            cd $PROJECT_DIR
+            cd ${{ secrets.PROJECT_DIR }} 
     
             git fetch test/auto
             git checkout main
             git pull --ff-only
 
-            pos-deploy $VERSION
+            pos-deploy ${{ secrets.VERSION }}
             
