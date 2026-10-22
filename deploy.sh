@@ -358,15 +358,10 @@ init_runtime
 load_env
 
 if [[ -z "${1-}" ]]; then
-  read -p "==> Input version : " NEW_VERSION
-else
-  NEW_VERSION="$1"
-fi
-
-if [[ -z "$NEW_VERSION" ]]; then
   set_status "FAILED" "No version given, exit !!"
   exit 1
 fi
+NEW_VERSION="$1" 
 
 if ! OLD_VERSION=$(awk -F= '/^APP_VERSION/ {print $2}' .env); then
   set_status "FAILED" "APP_VERSION not found in .env"
@@ -385,7 +380,7 @@ run_stage "$STAGE_VALIDATE" check_image
 
 run_stage "$STAGE_BACKUP" run_backup
 
-run_stage "$STAGE_PULL" docker compose pull
+run_stage "$STAGE_PULL" docker compose pull "$SERVICE_NAME"
 
 run_stage "$STAGE_DEPLOY" start_compose
 
