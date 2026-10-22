@@ -111,7 +111,9 @@ build_image() {
 push_image() {
   log "Push image $IMAGE ..."
 
-  docker push "$IMAGE"
+  if ! docker push "$IMAGE";then
+    fail "Push image failed"
+  fi
 
   log "Image pushed successfully"
 }
