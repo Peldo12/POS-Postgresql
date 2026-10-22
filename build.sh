@@ -179,7 +179,7 @@ wait_health() {
 test_image() {
   log "Testing image $IMAGE ..."
 
-  export APP_VERSION="CURRENT_VERSION"
+  export APP_VERSION="$CURRENT_VERSION"
 
   if ! docker compose -f compose.dev.yml up -d --no-deps --force-recreate "$SERVICE_NAME";then
     fail "Failure to start compose"
