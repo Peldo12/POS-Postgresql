@@ -26,4 +26,7 @@ jobs:
 
             echo "Docker status:"
             docker ps
+
+            echo "Deploy:..." 
+            pos-deploy 0.0.2c
             
