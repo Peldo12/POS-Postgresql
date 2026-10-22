@@ -183,6 +183,7 @@ test_image() {
 
   if ! docker compose -f compose-dev.yml up -d --no-deps --force-recreate "$SERVICE_NAME";then
     fail "Failure to start compose"
+  fi
 
   log "Waiting health check ..."
   wait_health
