@@ -126,7 +126,7 @@ test_image() {
 
   CONTAINER="api-test"
 
-  docker compose -f compose.dev.yaml up
+  docker compose -f compose.dev.yal up
 
   sleep 5
 
