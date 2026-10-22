@@ -12,6 +12,7 @@ MISSING=-
 # ---------
 STAGE_INIT="Init"
 STAGE_VERSION="Version"
+STAGE_PROJECT="Project"
 STAGE_ENGINE="Engine"
 STAGE_FILECHECK="File Check"
 STAGE_AUTH="Registry Auth"
@@ -51,6 +52,16 @@ set_status() {
 # Runtime
 # ===============
 
+project_check() {
+  log "Entering project directory..."
+
+  if [[ ! -d "$PROJECT_DIR" ]]; then
+    fail "Project directory not found"
+  fi
+
+  cd "$PROJECT_DIR"
+}
+
 version_check() {
   log "Check given version ..."
 
@@ -68,12 +79,12 @@ file_check() {
 
   if [[ ! -f Dockerfile ]]; then
     MISSING="Dockerfile"
-    exit 1
+    fail "Dockerfile missing !!" 
   fi
   
-  if [[ ! -f package.json && ! -f package-lock.json ]]; then
-    MISSING="package's"
-    exit 1
+  if [[ ! -f package.json ]]; then
+    MISSING="package.json"
+    fail "package.json missing !!" 
   fi
 }
 
@@ -170,11 +181,15 @@ fail() {
 
 log "Build starting ..."
 
+run_stage "$STAGE_INIT" init_runtime
+
 run_stage "$STAGE_ENGINE" docker info >/dev/null
 
 run_stage "$STAGE_AUTH" registry_auth_check
 
 run_stage "$STAGE_VERSION" version_check "$NEW_VERSION"
+
+run_stage "$STAGE_PROJECT" project_check
 
 run_stage "$STAGE_FILECHECK" file_check
 
