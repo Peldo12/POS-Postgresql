@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 # Config
 PROJECT_DIR="/opt/POS-Postgresql"
-IMAGE=""
+IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
 MISSING=-
 
@@ -14,6 +14,7 @@ STAGE_INIT="Init"
 STAGE_VERSION="Version"
 STAGE_ENGINE="Engine"
 STAGE_FILECHECK="File Check"
+STAGE_AUTH="Registry Auth"
 STAGE_TAG="Check Tag"
 STAGE_BUILD="Build"
 STAGE_PUSH="Push"
@@ -31,7 +32,7 @@ init_runtime() {
 # Deploy
 # ---------
 OLD_VERSION=-
-NEW_VERSION="$1"
+NEW_VERSION="${1-}"
 
 # ===============
 # Utility
@@ -74,6 +75,17 @@ file_check() {
     MISSING="package's"
     exit 1
   fi
+}
+
+registry_auth_check() {
+  log "Checking registry authentication ..."
+
+  if ! docker info | grep -q "Username"; then
+    set_status "FAILED" "Docker registry not authenticated"
+    exit 1
+  fi
+
+  log "Registry authenticated"
 }
 
 tag_check() {
@@ -155,6 +167,8 @@ run_stage() {
 log "Build starting ..."
 
 run_stage "$STAGE_ENGINE" docker info >/dev/null
+
+run_stage "$STAGE_AUTH" registry_auth_check
 
 run_stage "$STAGE_VERSION" version_check "$NEW_VERSION"
 
