@@ -20,7 +20,7 @@ jobs:
           ls -la
 
       - name: Get Compose File
-        run: echo COMPOSE_FILE="PWD/compose.test.yml"
+        run: echo COMPOSE_FILE="${PWD}/compose.test.yml" >> $GITHUB_ENV
 
       - name: Get Version
         run: |
