@@ -174,8 +174,6 @@ pull_image() {
   if ! docker compose -f "$COMPOSE_FILE" pull "$SERVICE_NAME";then
     fail "Failed when pull image"
   fi
-
-  log "Image $NEW_VERSION pulled"
 }
 
 start_compose() {
