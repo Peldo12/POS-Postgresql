@@ -221,6 +221,10 @@ error_handler() {
 }
 trap error_handler ERR
 
+cleanup_test() {
+    docker compose -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
+}
+
 finish_up() {
   log "Build version: ${CURRENT_VERSION-}"
   log "Status: ${STATUS-}"
@@ -229,6 +233,7 @@ finish_up() {
 }
 
 cleanup() {
+  cleanup_test
   finish_up
 }
 

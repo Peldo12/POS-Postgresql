@@ -1,24 +1,6 @@
 name: pos-test
 services:
-  # Layanan 1: Nginx
-  nginx:
-    image: nginx:alpine
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    networks:
-      - test_network
-    healthcheck:
-      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/health']
-      interval: 10s
-      timeout: 3s
-      retries: 6
-    restart: unless-stopped
-
-  # Layanan 2: Database PostgreSQL
+  # Layanan Database PostgreSQL
   database:
     image: postgres:15-alpine
     environment:
@@ -36,7 +18,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Layanan 3: Aplikasi Backend Node.js
+  # Layanan Backend Node.js
   backend-test:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
@@ -55,7 +37,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Layanan 4: Redis cache
+  # Layanan Redis cache
   redis:
     image: redis:8-alpine
     networks:
