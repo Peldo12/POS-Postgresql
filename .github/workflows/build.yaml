@@ -106,4 +106,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
+          docker compose -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
           docker compose -f "$COMPOSE_FILE" down -v
