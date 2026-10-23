@@ -86,7 +86,7 @@ jobs:
 
       - name: Container ps
         run: |
-          docker compose -f "$COMPOSE_FILE" ps
+          docker compose -f "$COMPOSE_FILE" ps -q
 
       - name: Get Container ID
         run: |
