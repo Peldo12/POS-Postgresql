@@ -24,8 +24,13 @@ jobs:
           VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Show Version
-        run: echo $VERSION
+      - name: Set Image Repo
+        run: echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
+
+      - name: Show Version & Image Repo
+        run: |
+          echo $VERSION
+          echo $IMAGE_REPO
 
       - name: Show Docker Version
         run: docker version
