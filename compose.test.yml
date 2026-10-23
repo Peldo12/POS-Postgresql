@@ -1,4 +1,4 @@
-name: pos-test
+ name: pos-test
 services:
   # Layanan Database PostgreSQL
   database:

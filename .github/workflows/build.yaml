@@ -37,11 +37,11 @@ jobs:
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Set Image Repo
-        run: ¦
+        run: |
           echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
 
       - name: Set Image tag
-        run: ¦
+        run: |
           echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
 
       - name: Show Detail
