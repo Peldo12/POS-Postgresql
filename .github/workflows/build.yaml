@@ -84,9 +84,9 @@ jobs:
           docker compose -f "$COMPOSE_FILE" \
           up -d --force-recreate "$SERVICE_NAME"
 
-      - name: Container ps
+      - name: Show Last Log
         run: |
-          docker compose -f "$COMPOSE_FILE" ps -a --services
+          docker compose -f "$COMPOSE_FILE" logs
 
       - name: Get Container ID
         run: |
