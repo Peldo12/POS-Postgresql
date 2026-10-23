@@ -23,12 +23,8 @@ services:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - test_network
-    environment:
-      DB_USER: test_user
-      DB_PASS: test_pass
-      DB_HOST: database
-      DB_NAME: test_db
-      REDIS_URL: ${REDIS_URL}
+    env_file:
+      - .env.test
     depends_on:
       database:
         condition: service_healthy
