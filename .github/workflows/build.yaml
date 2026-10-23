@@ -79,6 +79,10 @@ jobs:
           echo $CONTAINER_ID
           docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 
+      - name: Set Service name
+        run: |
+          echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
+
       - name: Get Container ID
         run: |
           CONTAINER_ID=$(docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
