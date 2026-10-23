@@ -23,8 +23,11 @@ services:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - test_network
-    env_file:
-      - /etc/pos/test.env
+    environment:
+      DB_USER: test_user
+      DB_PASS: test_pass
+      DB_HOST: database
+      DB_NAME: test_db
     depends_on:
       database:
         condition: service_healthy

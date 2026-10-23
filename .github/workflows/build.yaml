@@ -20,21 +20,29 @@ jobs:
           ls -la
 
       - name: Get Compose File
-        run: echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
+        run: |
+          echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
 
       - name: Security Audit
-        run: npm audit --audit-level=critical
+        run: |
+          npm audit --audit-level=critical
 
       - name: Get Version
         run: |
           VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+      - name: Export App Version
+        run: |
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Set Image Repo
-        run: echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
+        run: ¦
+          echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
 
       - name: Set Image tag
-        run: echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
+        run: ¦
+          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
 
       - name: Show Detail
         run: |
@@ -46,7 +54,8 @@ jobs:
           docker images
 
       - name: Show Docker Version
-        run: docker version
+        run: |
+          docker version
 
       - name: Login Docker Hub
         uses: docker/login-action@v3
@@ -66,7 +75,8 @@ jobs:
           docker build -t "$IMAGE" .
 
       - name: Test Image
-        run: docker compose -f "$COMPOSE_FILE" up -d --force-recreate
+        run: |
+          docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
@@ -77,4 +87,5 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose -f "$COMPOSE_FILE" down -v
+        run: |
+          docker compose -f "$COMPOSE_FILE" down -v
