@@ -5,6 +5,7 @@ for ((i=1; i<=MAX_RETRY; i++)); do
       --format='{{.State.Health.Status}}' \
       "$CONTAINER_ID")
 
+    echo "Status: $STATUS"
     case "$STATUS" in
         healthy)
             echo "API Healthy"
