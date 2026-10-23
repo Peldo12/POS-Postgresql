@@ -183,7 +183,7 @@ start_compose() {
   docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate "$SERVICE_NAME"
 
   log "Test Nginx config ..."
-  if ! docker compose -f "COMPOSE_FILE" exec -T nginx nginx -t; then
+  if ! docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -t; then
     log "Nginx config test failed"
     return 1
   fi
