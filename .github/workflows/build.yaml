@@ -30,15 +30,19 @@ jobs:
       - name: Show Docker Version
         run: docker version
 
+      - name: Security Audit
+        run: npm audit --audit-level=critical
+
       - name: Build Image
         run: |
           docker build -t kholi12/pos-api:$VERSION .
 
-      - name: Security Audit
-        run: npm audit --audit-level=critical
-          
       - name: Login Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Image
+        run: |
+          docker push kholi12/pos-api:$VERSION
