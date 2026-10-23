@@ -16,7 +16,7 @@
     "winston": "^3.19.0"
   },
   "name": "pos-posgrest",
-  "version": "0.0.1",
+  "version": "0.0.1b",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",

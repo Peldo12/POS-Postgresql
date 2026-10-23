@@ -58,11 +58,14 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t kholi12/pos-api:$VERSION .
+          docker build -t "IMAGE" .
 
       - name: Test Image
         run: docker compose -f "$COMPOSE_FILE" up -d
 
+      - name: Wait Backend Health
+        run: ./scripts/wait_health.sh
+
       - name: Push Image
         run: |
-          docker push kholi12/pos-api:$VERSION
+          docker push "$IMAGE"
