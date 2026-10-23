@@ -74,14 +74,19 @@ jobs:
         run: |
           docker build -t "$IMAGE" .
 
-      - name: Test Image
-        run: |
-          echo $CONTAINER_ID
-          docker compose -f "$COMPOSE_FILE" up -d --force-recreate
-
       - name: Set Service name
         run: |
           echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
+
+      - name: Test Image
+        run: |
+          echo $CONTAINER_ID
+          docker compose -f "$COMPOSE_FILE" \
+          up -d --force-recreate "$SERVICE_NAME"
+
+      - name: Container ps
+        run: |
+          docker compose -f "$COMPOSE_FILE" ps
 
       - name: Get Container ID
         run: |
