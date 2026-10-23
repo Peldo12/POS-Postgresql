@@ -1,9 +1,7 @@
 name: Build Docker Image
 
 on:
-  push:
-    branches:
-      - test/auto
+  workflow_dispatch: 
 
 jobs:
   build:
