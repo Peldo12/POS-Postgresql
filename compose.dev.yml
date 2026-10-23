@@ -41,6 +41,8 @@ services:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - test_network
+    env_file:
+      - /etc/pos/dev.env
     depends_on:
       database:
         condition: service_healthy
