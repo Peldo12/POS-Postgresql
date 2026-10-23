@@ -178,18 +178,20 @@ wait_health() {
 }
 
 test_image() {
-  log "Testing image $IMAGE ..."
-
+  log "Starting compose test..."
+  
   export APP_VERSION="$CURRENT_VERSION"
 
-  if ! docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate "$SERVICE_NAME";then
+  if ! docker compose -f "$COMPOSE_FILE" up -d;then
     fail "Failure to start compose"
   fi
 
-  log "Waiting health check ..."
-  wait_health
+  log "Waiting backend health ..."
+  if ! wait_health; then
+    fail "Image health check failed"
+  fi
 
-  log "Image is healthy"
+  log "Compose test passed"
 }
 
 push_image() {
