@@ -21,7 +21,7 @@ jobs:
 
       - name: Get Version
         run: |
-          VERSION=$(awk -F'"' '/"version"/ {print $4}' package.json)
+          VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Show Version
