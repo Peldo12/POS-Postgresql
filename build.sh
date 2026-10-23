@@ -7,7 +7,7 @@ PROJECT_DIR="/opt/POS-Postgresql"
 IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
 MISSING=-
-COMPOSE_FILE="compose.dev.yml"
+COMPOSE_FILE="compose.test.yml"
 SERVICE_NAME="backend-test"
 
 # Stage
@@ -222,7 +222,11 @@ error_handler() {
 trap error_handler ERR
 
 cleanup_test() {
-    docker compose -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
+    if [[ -f "$PROJECT_DIR/$COMPOSE_FILE" ]]; then
+        docker compose \
+          -f "$PROJECT_DIR/$COMPOSE_FILE" \
+          down -v >/dev/null 2>&1 || true
+    fi
 }
 
 finish_up() {
