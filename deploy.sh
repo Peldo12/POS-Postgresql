@@ -20,6 +20,7 @@ STAGE_BACKUP="Backup"
 STAGE_PULL="Pull"
 STAGE_DEPLOY="Deploy"
 STAGE_HEALTH="Health"
+STAGE_CLEANUP="Cleanup"
 
 # Runtime
 # ---------
@@ -128,11 +129,12 @@ validate_env() {
   done
 }
 
-
 set_version() {
   local version="$1"
+  
   sed -i "s/^APP_VERSION=.*/APP_VERSION=$version/" .env
-  source .env
+  
+  load_env
 }
 
 restore_version() {
@@ -166,18 +168,28 @@ run_backup() {
   sudo /usr/local/bin/pos-db-backup.sh
 }
 
+pull_image() {
+  log "Pull image $NEW_VERSION ..."
+
+  if ! docker compose -f "$COMPOSE_FILE" pull "$SERVICE_NAME";then
+    fail "Failed when pull image"
+  fi
+
+  log "Image $NEW_VERSION pulled"
+}
+
 start_compose() {
   log "Recreate backend ..."
-  docker compose up -d --no-deps --force-recreate "$SERVICE_NAME"
+  docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate "$SERVICE_NAME"
 
   log "Test Nginx config ..."
-  if ! docker compose exec -T nginx nginx -t; then
+  if ! docker compose -f "COMPOSE_FILE" exec -T nginx nginx -t; then
     log "Nginx config test failed"
     return 1
   fi
 
   log "Reload Nginx ..."
-  docker compose exec -T nginx nginx -s reload
+  docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload
   log "Nginx reloaded successfully"
 }
 
@@ -187,7 +199,7 @@ wait_health() {
   local CONTAINER_ID=-
   local HEALTH_STATUS=-
 
-  if ! CONTAINER_ID=$(docker compose ps -q "$SERVICE_NAME"); then
+  if ! CONTAINER_ID=$(docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME"); then
     log "Failed to get backend container id"
     return 1
   fi
@@ -260,7 +272,7 @@ rollback() {
 show_container_logs() {
   log "Last backend logs ..."
 
-  docker compose logs --tail 50 "$SERVICE_NAME" || true
+  docker compose -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
 }
 
 # ===============
@@ -273,6 +285,13 @@ run_stage() {
 
   "$@"
 }
+
+fail() {
+  set_status "FAILED" "$1"
+  exit 1
+}
+
+
 # ===============
 # Trap
 # ===============
@@ -329,13 +348,15 @@ finish_up() {
     docker image prune -f
   fi
   
-  log "Deploy version: ${CURRENT_VERSION-}"
   log "Status: ${STATUS-}"
+  log "From: $OLD_VERSION"
+  log "To: $NEW_VERSION"
   log "Stage: ${CURRENT_STAGE-}"
   log "Reason: ${REASON-}"
 }
 
 cleanup() {
+  CURRENT_STAGE="$STAGE_CLEANUP"
   finish_up
   release_lock
 }
@@ -358,20 +379,17 @@ init_runtime
 load_env
 
 if [[ -z "${1-}" ]]; then
-  set_status "FAILED" "No version given, exit !!"
-  exit 1
+  fail "No version given, exit !!"
 fi
 NEW_VERSION="$1" 
 
 if ! OLD_VERSION=$(awk -F= '/^APP_VERSION/ {print $2}' .env); then
-  set_status "FAILED" "APP_VERSION not found in .env"
-  exit 1
+  fail "APP_VERSION not found in .env"
 fi
 CURRENT_VERSION="$OLD_VERSION"
 
 if ! set_version "$NEW_VERSION"; then
-  set_status "FAILED" "Failed to update APP_VERSION"
-  exit 1
+  fail "Failed to update APP_VERSION"
 fi
 
 log "Target version: $NEW_VERSION"
@@ -380,13 +398,12 @@ run_stage "$STAGE_VALIDATE" check_image
 
 run_stage "$STAGE_BACKUP" run_backup
 
-run_stage "$STAGE_PULL" docker compose pull "$SERVICE_NAME"
+run_stage "$STAGE_PULL" pull_image
 
 run_stage "$STAGE_DEPLOY" start_compose
 
 run_stage "$STAGE_HEALTH" wait_health
 
-CURRENT_STAGE="Done"
 CURRENT_VERSION="$NEW_VERSION"
 PRUNE_IMAGE=true
 set_status "SUCCESS" "Deployment successful"

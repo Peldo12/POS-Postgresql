@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 
 # Config
+LOCK_FILE="/tmp/build.lock"
 PROJECT_DIR="/opt/POS-Postgresql"
 IMAGE="-"
 IMAGE_REPO="kholi12/pos-api"
@@ -49,6 +50,28 @@ log() {
 set_status() {
   STATUS="${1-}"
   REASON="${2-}"
+}
+
+acquire_lock() {
+  if [[ -f "$LOCK_FILE" ]]; then
+    local OLD_PID=-
+
+    OLD_PID=$(<"$LOCK_FILE")
+
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+      log "Deployment is running with PID $OLD_PID"
+      exit 1
+    else
+      log "Removing stale lock"
+      rm -f "$LOCK_FILE"
+    fi
+  fi
+
+  echo "$$" > "$LOCK_FILE"
+}
+
+release_lock() {
+  rm -f "${LOCK_FILE-}"
 }
 
 # ===============
@@ -222,11 +245,13 @@ error_handler() {
 trap error_handler ERR
 
 cleanup_test() {
-    if [[ -f "$PROJECT_DIR/$COMPOSE_FILE" ]]; then
-        docker compose \
-          -f "$PROJECT_DIR/$COMPOSE_FILE" \
-          down -v >/dev/null 2>&1 || true
-    fi
+  if [[ -f "$PROJECT_DIR/$COMPOSE_FILE" ]]; then
+    docker compose \
+      -f "$PROJECT_DIR/$COMPOSE_FILE" \
+      down -v >/dev/null 2>&1 || true
+  fi
+  
+  release_lock
 }
 
 finish_up() {
@@ -240,7 +265,6 @@ cleanup() {
   cleanup_test
   finish_up
 }
-
 trap cleanup EXIT
 
 # ===============
@@ -262,6 +286,8 @@ fail() {
 # ===============
 # Main
 # ===============
+
+acquire_lock
 
 log "Build starting ..."
 
