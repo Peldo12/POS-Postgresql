@@ -33,6 +33,9 @@ jobs:
       - name: Build Image
         run: |
           docker build -t kholi12/pos-api:$VERSION .
+
+      - name: Security Audit
+        run: npm audit --audit-level=critical
           
       - name: Login Docker Hub
         uses: docker/login-action@v3
