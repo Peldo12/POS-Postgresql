@@ -16,11 +16,14 @@ jobs:
 
       - name: Show Repository
         run: |
-          PWD=$(pwd) >> $GITHUB_ENV
+          echo PWD=$(pwd) >> $GITHUB_ENV
           ls -la
 
       - name: Get Compose File
-        run: echo COMPOSE_FILE="${PWD}/compose.test.yml" >> $GITHUB_ENV
+        run: echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
+
+      - name: Security Audit
+        run: npm audit --audit-level=critical
 
       - name: Get Version
         run: |
@@ -31,7 +34,7 @@ jobs:
         run: echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
 
       - name: Set Image tag
-        run: echo IMAGE="$IMAGE_REPO:VERSION" >> $GITHUB_ENV
+        run: echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
 
       - name: Show Detail
         run: |
@@ -40,6 +43,7 @@ jobs:
           echo $COMPOSE_FILE
           echo $IMAGE_REPO
           echo $IMAGE
+          docker images
 
       - name: Show Docker Version
         run: docker version
@@ -51,17 +55,18 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Tag Check Availablity
-        run: docker manifest inspect "$IMAGE" >/dev/null 2>&1
-
-      - name: Security Audit
-        run: npm audit --audit-level=critical
+        run: |
+          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "Image already exists"
+            exit 1
+          fi
 
       - name: Build Image
         run: |
-          docker build -t "IMAGE" .
+          docker build -t "$IMAGE" .
 
       - name: Test Image
-        run: docker compose -f "$COMPOSE_FILE" up -d
+        run: docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
@@ -69,3 +74,7 @@ jobs:
       - name: Push Image
         run: |
           docker push "$IMAGE"
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f "$COMPOSE_FILE" down -v
