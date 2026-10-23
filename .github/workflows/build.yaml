@@ -78,6 +78,11 @@ jobs:
         run: |
           echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
 
+      - name: Debug Redis
+        run: |
+          echo "$REDIS_URL"
+          echo REDIS_URL="redis://redis:6379" >> $GITHUB_ENV
+
       - name: Test Image
         run: |
           echo $CONTAINER_ID
