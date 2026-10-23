@@ -85,7 +85,7 @@ jobs:
 
       - name: Get Container ID
         run: |
-          CONTAINER_ID=$(docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
+          echo CONTAINER_ID=$(docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
