@@ -2,9 +2,9 @@ name: Build Docker Image
 
 on:
   push:
-    branches: 
-      - test/auto
+    branches:
       - main
+      - test/auto
 
 jobs:
   build:
@@ -18,6 +18,14 @@ jobs:
         run: |
           pwd
           ls -la
+
+      - name: Get Version
+        run: |
+          VERSION=$(awk -F'"' '/"version"/ {print $4}' package.json)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Show Version
+        run: echo $VERSION
 
       - name: Show Docker Version
         run: docker version
