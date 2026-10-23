@@ -86,7 +86,7 @@ jobs:
 
       - name: Show Last Log
         run: |
-          docker compose -f "$COMPOSE_FILE" logs
+          docker compose -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
 
       - name: Get Container ID
         run: |
