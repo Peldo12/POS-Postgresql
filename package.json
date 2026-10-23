@@ -10,7 +10,7 @@
     "joi": "^18.2.3",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.2.1",
     "pg": "^8.22.0",
     "redis": "^6.3.0",
     "telegraf": "^4.16.3",
