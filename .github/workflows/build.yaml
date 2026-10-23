@@ -27,10 +27,14 @@ jobs:
       - name: Set Image Repo
         run: echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
 
-      - name: Show Version & Image Repo
+      - name: Set Image
+        run: echo IMAGE="$IMAGE_REPO:VERSION" >> $GITHUB_ENV
+
+      - name: Show Detail
         run: |
           echo $VERSION
           echo $IMAGE_REPO
+          echo $IMAGE
 
       - name: Show Docker Version
         run: docker version
