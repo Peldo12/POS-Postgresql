@@ -76,7 +76,12 @@ jobs:
 
       - name: Test Image
         run: |
+          echo $CONTAINER_ID
           docker compose -f "$COMPOSE_FILE" up -d --force-recreate
+
+      - name: Get Container ID
+        run: |
+          CONTAINER_ID=$(docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
