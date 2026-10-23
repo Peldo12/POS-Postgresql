@@ -16,8 +16,11 @@ jobs:
 
       - name: Show Repository
         run: |
-          pwd
+          PWD=$(pwd) >> $GITHUB_ENV
           ls -la
+
+      - name: Get Compose File
+        run: echo COMPOSE_FILE="PWD/compose.test.yml"
 
       - name: Get Version
         run: |
@@ -32,12 +35,23 @@ jobs:
 
       - name: Show Detail
         run: |
+          echo $PWD
           echo $VERSION
+          echo $COMPOSE_FILE
           echo $IMAGE_REPO
           echo $IMAGE
 
       - name: Show Docker Version
         run: docker version
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag Check Availablity
+        run: docker manifest inspect "$IMAGE" >/dev/null 2>&1
 
       - name: Security Audit
         run: npm audit --audit-level=critical
@@ -46,11 +60,8 @@ jobs:
         run: |
           docker build -t kholi12/pos-api:$VERSION .
 
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Test Image
+        run: docker compose -f "$COMPOSE_FILE" up -d
 
       - name: Push Image
         run: |
