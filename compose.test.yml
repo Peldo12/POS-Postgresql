@@ -4,9 +4,9 @@ services:
   database:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_pass
-      POSTGRES_DB: test_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_test:/var/lib/postgresql/data
     networks:
