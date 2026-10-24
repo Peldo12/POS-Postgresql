@@ -51,7 +51,6 @@ jobs:
           echo $COMPOSE_FILE
           echo $IMAGE_REPO
           echo $IMAGE
-          docker images
 
       - name: Show Docker Version
         run: |
@@ -63,7 +62,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag Check Availablity
+      - name: Check Existing Image
         run: |
           if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
             echo "Image already exists"
@@ -73,6 +72,10 @@ jobs:
       - name: Build Image
         run: |
           docker build -t "$IMAGE" .
+
+      - name: Show Images
+        run: |
+          docker images
 
       - name: Set Service name
         run: |
@@ -95,12 +98,6 @@ jobs:
         run: |
           cat .env.test | sed 's/=.*/=***/'
 
-      - name: Export Env
-        run: |
-          set -a
-          source .env.test
-          set +a
-
       - name: Config Check
         run: |
           docker compose \
@@ -116,12 +113,6 @@ jobs:
       - name: All Service
         run: |
           docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -a
-          docker compose --env-file .env.test \
-          -f compose.test.yml \
-          exec backend-test env
-          docker compose --env-file .env.test \
-          -f compose.test.yml \
-          logs backend-test
 
       - name: Get Container ID
         run: |
@@ -142,6 +133,11 @@ jobs:
         if: always()
         run: |
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
+
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 database || true
-          docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v
+
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v --remove-orphans
+
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 redis || true
+
+          docker image prune -f
