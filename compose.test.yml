@@ -25,6 +25,7 @@ services:
       - test_network
     environment:
       NODE_ENV: production
+      PORT: 3000
     env_file:
       - .env.test
     depends_on:
