@@ -116,4 +116,6 @@ jobs:
         if: always()
         run: |
           docker compose -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
+          docker compose -f "$COMPOSE_FILE" logs --tail 50 database || true
           docker compose -f "$COMPOSE_FILE" down -v
+          docker compose -f "$COMPOSE_FILE" logs --tail 50 redis || true
