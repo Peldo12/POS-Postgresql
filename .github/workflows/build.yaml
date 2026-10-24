@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     env:
       IMAGE_REPO: kholi12/pos-api
@@ -18,9 +19,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Security Audit
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install Dependencies & Security Audit
         run: |
-          npm ci --omit=dev
+          npm ci
           npm audit --audit-level=critical
 
       - name: Get Version
@@ -98,8 +105,10 @@ jobs:
 
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 database || true
 
-          docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v --remove-orphans
-
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 redis || true
 
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v --remove-orphans
+
           docker image prune -f
+
+          rm -f .env.test
