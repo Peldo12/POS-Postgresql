@@ -70,14 +70,6 @@ jobs:
             exit 1
           fi
 
-      - name: Build Image
-        run: |
-          docker build -t "$IMAGE" .
-
-      - name: Set Service name
-        run: |
-          echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
-
       - name: Env Setup
         run: |
           cat > .env.test <<EOF
@@ -90,6 +82,14 @@ jobs:
           SUPER_EMAIL=${{ secrets.SUPER_EMAIL }}
           SUPER_PASS=${{ secrets.SUPER_PASS }}
           EOF
+
+      - name: Build Image
+        run: |
+          docker build -t "$IMAGE" .
+
+      - name: Set Service name
+        run: |
+          echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
 
       - name: Test Image
         run: |
