@@ -20,14 +20,13 @@ jobs:
 
       - name: Security Audit
         run: |
+          npm ci --omit=dev
           npm audit --audit-level=critical
 
       - name: Get Version
         run: |
           VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
 
       - name: Login Docker Hub
         uses: docker/login-action@v3
@@ -35,16 +34,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Check Existing Image
-        run: |
-          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-            echo "Image already exists"
-            exit 1
-          fi
-
       - name: Create Test Ennvironment
         run: |
+          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
           echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
+
           cat > .env.test <<EOF
           DB_HOST=${{ secrets.DB_HOST }}
           DB_USER=${{ secrets.DB_USER }}
@@ -56,9 +50,20 @@ jobs:
           SUPER_PASS=${{ secrets.SUPER_PASS }}
           EOF
 
+      - name: Check Existing Image
+        run: |
+          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "Image already exists"
+            exit 1
+          fi
+
       - name: Build Image
         run: |
           docker build -t "$IMAGE" .
+
+      - name: Inspect Image
+        run: |
+          docker image inspect "$IMAGE"
 
       - name: Test Image
         run: |
@@ -66,7 +71,7 @@ jobs:
           -f "$COMPOSE_FILE" \
           up -d --force-recreate "$SERVICE_NAME"
 
-      - name: All Service
+      - name: Show Running Containers
         run: |
           docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -a
           echo CONTAINER_ID=$(docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
@@ -76,7 +81,11 @@ jobs:
 
       - name: API Health Check
         run: |
-          curl -f http://localhost:3000/api/health || exit 1
+          curl \
+          --retry 5 \
+          --retry-delay 2 \
+          --retry-connrefused \
+          -f http://localhost:3000/api/health
 
       - name: Push Image
         run: |
