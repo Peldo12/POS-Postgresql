@@ -27,6 +27,7 @@ jobs:
           VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
 
       - name: Login Docker Hub
         uses: docker/login-action@v3
@@ -44,7 +45,6 @@ jobs:
       - name: Create Test Ennvironment
         run: |
           echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
-          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
           cat > .env.test <<EOF
           DB_HOST=${{ secrets.DB_HOST }}
           DB_USER=${{ secrets.DB_USER }}
