@@ -123,16 +123,16 @@ jobs:
           -f compose.test.yml \
           logs backend-test
 
-      - name: Health Check
-        run: |
-          curl -f http://localhost:3000/api/health || exit 1
-
       - name: Get Container ID
         run: |
           echo CONTAINER_ID=$(docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
+
+      - name: Health Check
+        run: |
+          curl -f http://localhost:3000/api/health || exit 1
 
       - name: Push Image
         run: |

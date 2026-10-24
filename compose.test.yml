@@ -23,6 +23,8 @@ services:
     image: kholi12/pos-api:${APP_VERSION}
     networks:
       - test_network
+    environment:
+      NODE_ENV: production
     env_file:
       - .env.test
     depends_on:

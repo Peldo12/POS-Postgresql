@@ -19,3 +19,11 @@ function stopApp(signal) {
 
 process.on('SIGINT', stopApp);
 process.on('SIGTERM', stopApp);
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED:', err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT:', err);
+});
