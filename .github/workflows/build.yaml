@@ -83,6 +83,10 @@ jobs:
           SUPER_PASS=${{ secrets.SUPER_PASS }}
           EOF
 
+      - name: Show Env File
+        run: |
+          cat .env.test | sed 's/=.*/=***/'
+
       - name: Build Image
         run: |
           docker build -t "$IMAGE" .
