@@ -116,6 +116,12 @@ jobs:
       - name: All Service
         run: |
           docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -a
+          docker compose --env-file .env.test \
+          -f compose.test.yml \
+          exec backend-test env
+          docker compose --env-file .env.test \
+          -f compose.test.yml \
+          logs backend-test
 
       - name: Health Check
         run: |
@@ -135,7 +141,7 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker compose -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
-          docker compose -f "$COMPOSE_FILE" logs --tail 50 database || true
-          docker compose -f "$COMPOSE_FILE" down -v
-          docker compose -f "$COMPOSE_FILE" logs --tail 50 redis || true
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 "$SERVICE_NAME" || true
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 database || true
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 redis || true
