@@ -101,6 +101,12 @@ jobs:
           source .env.test
           set +a
 
+      - name: Config Check
+        run: |
+          docker compose \
+          --env-file .env.test \
+          -f compose.test.yml config
+
       - name: Test Image
         run: |
           docker compose --env-file .env.test \
