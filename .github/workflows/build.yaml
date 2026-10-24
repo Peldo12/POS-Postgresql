@@ -10,18 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      IMAGE_REPO: kholi12/pos-api
+      SERVICE_NAME: backend-test
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Show Repository
-        run: |
-          echo PWD=$(pwd) >> $GITHUB_ENV
-          ls -la
-
-      - name: Get Compose File
-        run: |
-          echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
 
       - name: Security Audit
         run: |
@@ -31,30 +26,7 @@ jobs:
         run: |
           VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Export App Version
-        run: |
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Set Image Repo
-        run: |
-          echo IMAGE_REPO="kholi12/pos-api" >> $GITHUB_ENV
-
-      - name: Set Image tag
-        run: |
-          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
-
-      - name: Show Detail
-        run: |
-          echo $PWD
-          echo $VERSION
-          echo $COMPOSE_FILE
-          echo $IMAGE_REPO
-          echo $IMAGE
-
-      - name: Show Docker Version
-        run: |
-          docker version
 
       - name: Login Docker Hub
         uses: docker/login-action@v3
@@ -69,20 +41,10 @@ jobs:
             exit 1
           fi
 
-      - name: Build Image
+      - name: Create Test Ennvironment
         run: |
-          docker build -t "$IMAGE" .
-
-      - name: Show Images
-        run: |
-          docker images
-
-      - name: Set Service name
-        run: |
-          echo SERVICE_NAME="backend-test" >> $GITHUB_ENV
-
-      - name: Env Setup
-        run: |
+          echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
+          echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
           cat > .env.test <<EOF
           DB_HOST=${{ secrets.DB_HOST }}
           DB_USER=${{ secrets.DB_USER }}
@@ -94,15 +56,9 @@ jobs:
           SUPER_PASS=${{ secrets.SUPER_PASS }}
           EOF
 
-      - name: Show Env File
+      - name: Build Image
         run: |
-          cat .env.test | sed 's/=.*/=***/'
-
-      - name: Config Check
-        run: |
-          docker compose \
-          --env-file .env.test \
-          -f compose.test.yml config
+          docker build -t "$IMAGE" .
 
       - name: Test Image
         run: |
@@ -113,15 +69,12 @@ jobs:
       - name: All Service
         run: |
           docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -a
-
-      - name: Get Container ID
-        run: |
           echo CONTAINER_ID=$(docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME") >> $GITHUB_ENV
 
       - name: Wait Backend Health
         run: ./scripts/wait_health.sh
 
-      - name: Health Check
+      - name: API Health Check
         run: |
           curl -f http://localhost:3000/api/health || exit 1
 
