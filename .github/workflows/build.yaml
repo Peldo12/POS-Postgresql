@@ -41,7 +41,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")  
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo APP="$VERSION" >> .env.test
+          echo APP="$VERSION" >> $GITHUB_ENV
 
       - name: Create Test Ennvironment
         run: |
