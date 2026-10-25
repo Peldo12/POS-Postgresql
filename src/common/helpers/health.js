@@ -10,14 +10,14 @@ async function health(req, res) {
   let status;
   try {
     const { rowCount } = await pool.query('SELECT 1');
-    services.postgres = 'up';
-  } catch (error) {
+    if (rowCount) services.postgres = 'up';
+  } catch {
     services.postgres = 'down';
   }
   try {
     const redis = await client.ping();
-    services.redis = 'up';
-  } catch (error) {
+    if (redis === 'PONG') services.redis = 'up';
+  } catch {
     services.redis = 'down';
   }
 

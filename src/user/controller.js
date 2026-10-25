@@ -1,9 +1,7 @@
 const success = require('../common/helpers/response');
-const sendEmail = require('../common/helpers/email');
-const dateNow = require('../common/helpers/date');
 const AppError = require('../common/utils/AppError');
 
-const { getUsers, userById, userByIdShort, updateUser } = require('./model');
+const { getUsers, userByIdShort, updateUser } = require('./model');
 
 async function users(req, res, next) {
   try {

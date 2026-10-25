@@ -1,5 +1,4 @@
 const service = require('./service');
-const dateNow = require('../common/helpers/date');
 const success = require('../common/helpers/response');
 const AppError = require('../common/utils/AppError');
 
@@ -181,13 +180,15 @@ async function resetPass(req, res, next) {
  * @require body { refreshToken }
  * @access Atleast verified email
  */
-async function token(req, res, next) {
+async function getToken(req, res, next) {
   try {
     const { userId } = req.user;
     const { refreshToken } = req.body;
-    if (!refreshToken) throw new AppError(400, 'No token has given');
+    if (!refreshToken) {
+      throw new AppError(400, 'No token has given');
+    }
 
-    const { username, accessToken } = await service.refreshToken({
+    const { username, accessToken } = await service.validateRefreshToken({
       userId,
       refreshToken,
     });
@@ -217,6 +218,7 @@ async function token(req, res, next) {
  */
 async function me(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
     const { userId } = req.user;
     const { user } = await service.getById({ userId });
     const { username } = user;
@@ -245,6 +247,8 @@ async function me(req, res, next) {
  */
 async function logout(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId } = req.user;
     await service.getById({ userId });
 
@@ -276,7 +280,7 @@ module.exports = {
   verify,
   resendVerify,
   me,
-  token,
+  getToken,
   logout,
   forgotPass,
   resetPass,

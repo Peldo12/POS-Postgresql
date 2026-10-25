@@ -11,14 +11,16 @@ function errorHandler(err, req, res, next) {
   }
 
   const secured = ['pin', 'password', 'repeatPassword', 'refreshToken', 'otp'];
-  for (let key of Object.keys(body)) {
-    if (secured.includes(key)) body[key] = '***REDACTED***';
+  for (const key of Object.keys(body)) {
+    if (secured.includes(key)) {
+      body[key] = '***REDACTED***';
+    }
   }
 
   req.logger.error(err?.message, {
     user: req.user?.id,
     path: req.originalUrl,
-    body: body,
+    body,
     stack: err.stack,
   });
 

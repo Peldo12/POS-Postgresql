@@ -19,10 +19,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_DEPLOY }}
           script: |
             cd ${{ secrets.PROJECT_DIR }} 
-    
+
             git fetch origin
             git checkout test/auto
             git pull --ff-only
 
             pos-deploy ${{ secrets.VERSION }}
-            

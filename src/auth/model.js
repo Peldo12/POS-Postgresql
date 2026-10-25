@@ -125,22 +125,18 @@ async function verifyEmail(client, userId) {
 }
 
 async function updatePass(options) {
-  try {
-    const { client, userId, hashed } = options;
-    const { rows } = await client.query(
-      `
+  const { client, userId, hashed } = options;
+  const { rows } = await client.query(
+    `
         UPDATE users 
         SET password = $1 
         WHERE id = $2
         RETURNING username, role_id
       `,
-      [hashed, userId]
-    );
+    [hashed, userId]
+  );
 
-    return rows[0];
-  } catch (error) {
-    throw error;
-  }
+  return rows[0];
 }
 
 module.exports = {

@@ -1,5 +1,4 @@
 const { pool } = require('../config/pool');
-const AppError = require('../common/utils/AppError');
 
 async function productJoin(filters) {
   const {
@@ -207,10 +206,10 @@ async function decreaseStock(options, client) {
 }
 
 async function removeOrRestore(options) {
-  const { client, id, value = null, user } = options;
+  const { client, id, value = null } = options;
   const params = [];
   params.push(value);
-  let setClause = `
+  const setClause = `
       UPDATE product_info
       SET deleted_at = $${params.length}
     `;
@@ -225,8 +224,8 @@ async function removeOrRestore(options) {
   return rows;
 }
 
-async function permanentRemoveProduct(id) {
-  const { rows } = await pool.query(
+async function permanentRemoveProduct({ client, id }) {
+  const { rows } = await client.query(
     `
   DELETE FROM products
   WHERE id = $1

@@ -5,7 +5,9 @@ function metadata(page, limit, search = null, total) {
     total,
   };
 
-  if (search) data.search = search;
+  if (search) {
+    data.search = search;
+  }
   return data;
 }
 

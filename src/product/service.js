@@ -1,4 +1,3 @@
-const { pool } = require('../config/pool');
 const info = require('./info');
 const log = require('./log');
 const model = require('./model');
@@ -9,7 +8,9 @@ const logger = require('../common/middleware/logger');
 const AppError = require('../common/utils/AppError');
 
 function createProductKey(options) {
-  if (options.id) return `product:${options.id}`;
+  if (options.id) {
+    return `product:${options.id}`;
+  }
 
   return md5('products', options);
 }
@@ -68,6 +69,7 @@ async function updateProduct(options) {
     categoryId: product.category_id,
   });
   if (!products.length) throw new AppError(404, 'Product not found');
+
   if (product.sku !== products[0].sku)
     throw new AppError(400, 'SKU cannot be changed');
 
@@ -79,12 +81,12 @@ async function updateProduct(options) {
     await info.create({
       client,
       productId: product.id,
-      userId: user.id,
+      userId,
     });
     await log.create({
       client,
       action: 'UPDATE',
-      userId: user.id,
+      userId,
       data: product,
       refId: product.id,
       refType: 'PRODUCT',
@@ -98,17 +100,18 @@ async function updateStocks(options, user) {
   const { userId, username } = user;
   const result = [];
   await transaction(async (client) => {
-    for (let product of options) {
+    for (const product of options) {
       const { quantity, id } = product;
 
       if (quantity < 0) {
         const updated = await model.decreaseStock(product, client);
-        console.log(updated);
         if (!updated.rowCount)
           throw new AppError(400, 'Insufficient stock product');
       } else {
         const updated = await model.increaseStock(product, client);
-        if (!updated.rowCount) throw new AppError(404, 'Product not found');
+        if (!updated.rowCount) {
+          throw new AppError(404, 'Product not found');
+        }
       }
 
       result.push({ id, status: 'success' });
@@ -165,9 +168,9 @@ async function removeOrRestoreProduct(options) {
   });
 }
 
-async function permanentDelete() {
+async function permanentDelete(id) {
   return await transaction(async (client) => {
-    return await model.permanentRemoveProduct(id);
+    return await model.permanentRemoveProduct({ client, id });
   });
 }
 
@@ -191,5 +194,6 @@ module.exports = {
   updateProduct,
   updateStocks,
   removeOrRestoreProduct,
+  permanentDelete,
   getStats,
 };

@@ -10,7 +10,7 @@ client.on('error', (err) => {
 async function initRedis() {
   try {
     await client.connect();
-    console.log(`${new Date().toLocaleTimeString()}: Connected to Redis`);
+    console.warn(`${new Date().toLocaleTimeString()}: Connected to Redis`);
   } catch (err) {
     console.error('Failed to connect Redis:', err);
     throw err;
@@ -32,11 +32,15 @@ async function remove(key) {
 }
 
 async function clearCache(list = []) {
-  if (!Array.isArray(list)) throw new Error('Invalid type to clear');
-  if (!list.length) throw new Error('Empty list to clear');
+  if (!Array.isArray(list)) {
+    throw new Error('Invalid type to clear');
+  }
+  if (!list.length) {
+    throw new Error('Empty list to clear');
+  }
 
   let deleted = 0;
-  for (let prefix of list) {
+  for (const prefix of list) {
     let cursor = '0';
     const keysToDelete = new Set();
 

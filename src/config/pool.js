@@ -13,7 +13,7 @@ const pool = new Pool({
 async function testConnect() {
   const client = await pool.connect();
   try {
-    console.log(`${new Date().toLocaleTimeString()}: Connected to PostgreSQL`);
+    console.warn(`${new Date().toLocaleTimeString()}: Connected to PostgreSQL`);
   } finally {
     client.release();
   }
@@ -201,7 +201,7 @@ async function initDB() {
     uploaded_by BIGINT NOT NULL
     )`);
   } catch (e) {
-    console.log(e);
+    console.error(e);
   }
 }
 

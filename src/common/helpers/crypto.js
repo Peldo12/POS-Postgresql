@@ -9,7 +9,9 @@ function bytes(type) {
 }
 
 function md5(key, value) {
-  if (!key || !value) throw new Error('Nothing to hash');
+  if (!key || !value) {
+    throw new Error('Nothing to hash');
+  }
   const hash = crypto
     .createHash('md5')
     .update(JSON.stringify(value))

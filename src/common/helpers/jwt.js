@@ -14,7 +14,9 @@ function generateJWT({ payload, type = 'access' }) {
 
   const { secret, expiresIn } = config[type] || config.access;
 
-  if (!secret) throw new Error(`JWT Secret for ${type} is not configured`);
+  if (!secret) {
+    throw new Error(`JWT Secret for ${type} is not configured`);
+  }
 
   return jwt.sign(payload, secret, { expiresIn });
 }

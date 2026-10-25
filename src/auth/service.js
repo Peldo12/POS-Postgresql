@@ -7,7 +7,6 @@ const generateJWT = require('../common/helpers/jwt');
 const transaction = require('../common/helpers/transaction');
 const { bytes } = require('../common/helpers/crypto');
 const template = require('../common/utils/template.js');
-const { pool } = require('../config/pool');
 const AppError = require('../common/utils/AppError');
 
 // ======================
@@ -68,12 +67,10 @@ async function register({ username, email, password }) {
   const found = await model.userByUsernameOrEmail({ username, email });
   if (found) {
     const params = [];
-    if (found.username === username) {
-      params.push('Username');
-    }
-    if (found.email === email) {
-      params.push('Email');
-    }
+    if (found.username === username) params.push('Username');
+
+    if (found.email === email) params.push('Email');
+
     const current = params.length > 1 ? params.join(' & ') : params.join('');
     throw new AppError(409, `${current} already registered`);
   }
@@ -112,8 +109,10 @@ async function verifyEmail(token) {
   const user = await model.userByIdentifier(userId);
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (user.email_verified_at)
     throw new AppError(401, 'Your email already verified');
+
   const updatedUser = await transaction(async (client) => {
     return await model.verifyEmail(client, userId);
   });
@@ -132,8 +131,10 @@ async function resendVerification({ username, password }) {
   const user = await model.userByIdentifier(username);
 
   if (!user) throw new AppError(404, 'Username or email not registered');
+
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (user.email_verified_at)
     throw new AppError(400, 'Your email already verified');
 
@@ -161,8 +162,10 @@ async function login({ username, password }) {
   const user = await model.userByIdentifier(username);
 
   if (!user) throw new AppError(404, 'Username or email not registered');
+
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (!user.email_verified_at)
     throw new AppError(401, 'Your email not verified, check email');
 
@@ -179,8 +182,10 @@ async function forgotPassword({ username }) {
   const user = await model.userByIdentifier(username);
 
   if (!user) throw new AppError(404, 'Username or email not registered');
+
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (!user.email_verified_at)
     throw new AppError(401, 'Your email not verified');
 
@@ -208,6 +213,7 @@ async function resetPassword({ token, password }) {
 
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (!user.email_verified_at)
     throw new AppError(401, 'Your email not verified');
 
@@ -229,13 +235,16 @@ async function resetPassword({ token, password }) {
 /**
  * Refresh Token
  */
-async function refreshToken({ userId, refreshToken }) {
+async function validateRefreshToken({ userId, refreshToken }) {
   const user = await model.userById({ userId });
 
   if (!user) throw new AppError(404, 'User not found');
+
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   if (!user.token) throw new AppError(401, 'Please login again');
+
   if (user.token !== refreshToken)
     throw new AppError(403, 'Refresh token mismatch');
 
@@ -250,13 +259,13 @@ async function issueTokens(user, isRefresh = false) {
     userId: user.id,
     username: user.username,
     role: user.role,
-    login_at: isRefresh ? user.last_login_at : dateNow(),
-    email_verified_at: user.email_verified_at,
-    generated_at: dateNow('iso'),
+    loginAt: isRefresh ? user.last_login_at : dateNow(),
+    emailVerified: user.email_verified_at,
+    generatedAt: dateNow('iso'),
   };
 
   const accessToken = generateJWT({ payload });
-  const refreshToken = generateJWT({
+  const token = generateJWT({
     payload,
     type: 'refresh',
   });
@@ -266,7 +275,7 @@ async function issueTokens(user, isRefresh = false) {
       return await model.createToken({
         client,
         id: user.id,
-        token: refreshToken,
+        token,
         type: 'REFRESH_TOKEN',
       });
     });
@@ -275,7 +284,7 @@ async function issueTokens(user, isRefresh = false) {
   return {
     userId: user.id,
     accessToken,
-    refreshToken,
+    refreshToken: token,
   };
 }
 
@@ -285,8 +294,10 @@ async function issueTokens(user, isRefresh = false) {
 async function getById(options) {
   const user = await model.userById(options);
   if (!user) throw new AppError(404, 'User not found');
+
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
+
   return { user };
 }
 
@@ -313,7 +324,7 @@ module.exports = {
   login,
   forgotPassword,
   resetPassword,
-  refreshToken,
+  validateRefreshToken,
   getById,
   createToken,
 };

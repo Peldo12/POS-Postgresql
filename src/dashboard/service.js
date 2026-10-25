@@ -1,8 +1,7 @@
 const productService = require('../product/service');
 const orderService = require('../order/service');
-const AppError = require('../common/utils/AppError');
 
-async function productStats(options) {
+async function productStats() {
   const { stats } = await productService.getStats();
   return {
     products: stats.products,

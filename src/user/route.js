@@ -1,16 +1,10 @@
-const express = require('express');
-const router = express.Router();
-
-const { authenticate } = require('../common/middleware/authentication');
-const { users, byId, update } = require('./controller');
-
-const validateParams = require('../common/middleware/validateParams');
-const { idSchema } = require('../common/global');
+const control = require('./controller');
+const { router, authenticate, validate, idString } = require('../config/base');
 
 router.use(authenticate);
 
-router.get('/', users);
-router.get('/:id', validateParams(idSchema), byId);
-router.put('/:id/update', validateParams(idSchema), update);
+router.get('/', control.users);
+router.get('/:id', validate.params(idString), control.byId);
+router.put('/:id/update', validate.params(idString), control.update);
 
 module.exports = router;

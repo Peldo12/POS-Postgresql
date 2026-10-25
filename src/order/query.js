@@ -20,7 +20,6 @@ function buildOrderFilter(filters) {
     status,
     range,
     date,
-    nextDay,
     start,
     end,
     id,
@@ -106,22 +105,6 @@ function buildOrderFilter(filters) {
   }
 
   return { whereClause, params };
-}
-
-function buildOrderSort(options) {
-  const allowSortBy = [
-    'id',
-    'userId',
-    'method',
-    'status',
-    'total',
-    'createdAt',
-  ];
-  if (!allowSortBy.includes(sort))
-    throw new AppError(400, 'Invalid sort column');
-
-  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  orderSql += ` ORDER BY ${sortMap[sort]} ${direction}`;
 }
 
 module.exports = { buildSelectOrder, buildOrderFilter };

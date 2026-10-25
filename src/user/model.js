@@ -15,7 +15,9 @@ async function getUsers(options) {
   ON r.id = u.role_id
   WHERE 1=1
   `;
-  if (deleted) sql += ` AND u.deleted_at IS NULL`;
+  if (deleted) {
+    sql += ` AND u.deleted_at IS NULL`;
+  }
 
   const { rows } = await pool.query(sql);
   return rows;
@@ -99,10 +101,6 @@ async function updateUser(options) {
   sql += `WHERE id = $${params.length}`;
 
   const { rows } = await pool.query(sql, params);
-  console.log({
-    sql,
-    params,
-  });
   return rows[0];
 }
 

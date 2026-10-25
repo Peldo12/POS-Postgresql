@@ -25,11 +25,11 @@ async function products(req, res, next) {
       orderBy: req.query.orderBy?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC',
     };
 
-    const { products, pagination } = await service.getProducts(filters);
+    const { products: items, pagination } = await service.getProducts(filters);
 
     success({
       message: 'Products are loaded',
-      data: { products },
+      data: { items },
       pagination,
       res,
     });
@@ -58,12 +58,12 @@ async function byId(req, res, next) {
     const { userId, username } = req.user;
     const { id } = req.params;
 
-    const { products } = await service.getProducts({ id });
+    const { products: items } = await service.getProducts({ id });
     if (!products.length) throw new AppError(404, 'Product not found');
 
     success({
       message: 'Product are loaded',
-      data: { products },
+      data: { items },
       res,
     });
 
@@ -98,7 +98,7 @@ async function create(req, res, next) {
     success({
       statusCode: 201,
       message: `Product ${product?.name} created`,
-      data: { products: product },
+      data: { items: product },
       res,
     });
 
@@ -133,7 +133,7 @@ async function update(req, res, next) {
     });
     success({
       message: 'Product updated',
-      data: { products: result },
+      data: { items: result },
       res,
     });
     req.logger.info('Product updated by', {
@@ -192,7 +192,7 @@ async function remove(req, res, next) {
     const { userId, username } = req.user;
     const { id } = req.params;
 
-    const { products } = await service.removeOrRestoreProduct({
+    const { products: items } = await service.removeOrRestoreProduct({
       id,
       value: dateNow(),
       user: req.user,
@@ -200,7 +200,7 @@ async function remove(req, res, next) {
 
     success({
       message: `Product ${products[0].name} removed`,
-      data: { products },
+      data: { items },
       res,
     });
     req.logger.info('Product removed', {
@@ -228,13 +228,13 @@ async function restore(req, res, next) {
 
     const { id } = req.params;
 
-    const { products } = await service.removeOrRestoreProduct({
+    const { products: items } = await service.removeOrRestoreProduct({
       id,
       user: req.user,
     });
     success({
       message: `Product ${products[0].name} restored`,
-      data: { products },
+      data: { items },
       res,
     });
     req.logger.info('Product restored', {
@@ -252,14 +252,12 @@ async function restore(req, res, next) {
 
 async function removePermanent(req, res, next) {
   try {
+    const { userId, username } = req.user;
     const { id } = req.params;
-    const found = await getById({ id });
-    if (!found) throw new AppError(404, 'Product not found');
 
-    const result = await removePermanent(id);
+    await service.removePermanent(id);
     success({
       message: 'Product permanent deleted',
-      data: { products: [result] },
       res,
     });
     req.logger.info('Product permanent deleted', {

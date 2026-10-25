@@ -52,7 +52,7 @@ async function create(options) {
 
     const items = [];
     let subtotal = 0;
-    for (let product of products) {
+    for (const product of products) {
       const { products: exist } = await productService.getProducts({
         id: product.id,
       });
@@ -87,7 +87,7 @@ async function create(options) {
       },
     });
 
-    for (let item of items) {
+    for (const item of items) {
       await model.detail({
         client,
         order: {
@@ -130,14 +130,14 @@ async function removeOrRestore(options) {
   const { orderId, value } = options;
   const isRemove = Boolean(value);
 
-  const { orders } = await model.getOrders({
+  const { orders: items } = await model.getOrders({
     id: orderId,
     deleted: isRemove ? false : true,
   });
   if (isRemove) {
-    if (!orders.length) throw new AppError(404, 'Order not found or deleted');
+    if (!items.length) throw new AppError(404, 'Order not found or deleted');
   } else {
-    if (!orders.length) throw new AppError(404, 'Order not deleted');
+    if (!items.length) throw new AppError(404, 'Order not deleted');
   }
 
   const result = await transaction(async (client) => {
@@ -164,4 +164,11 @@ async function getStats(options) {
   return await model.orderStats(options);
 }
 
-module.exports = { create, orders, detailOrders, removeOrRestore, getStats };
+module.exports = {
+  create,
+  orders,
+  detailOrders,
+  removeOrRestore,
+  getStats,
+  updateStatus,
+};
