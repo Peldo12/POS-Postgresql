@@ -41,13 +41,14 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")  
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo APP="$VERSION" >> .env.test
+          echo APP_VERSION="$VERSION" >> $GITHUB_ENV
 
       - name: Create Test Ennvironment
         run: |
           echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
           echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
           cat > .env.test <<EOF
+          PORT=$${{ secrets.PORT }} 
           DB_HOST=${{ secrets.DB_HOST }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
