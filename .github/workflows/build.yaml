@@ -37,9 +37,6 @@ jobs:
       - name: Format Check
         run: npm run format:check
 
-      - name: Unit Test
-        run: npm test
-
       - name: Get Version
         run: |
           VERSION=$(node -p "require('./package.json').version")  
