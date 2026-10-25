@@ -16,16 +16,19 @@
     "winston": "^3.19.0"
   },
   "name": "pos-posgrest",
-  "version": "0.0.1b",
+  "version": "0.0.1",
   "main": "index.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "prepare": "husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check .",
-    "start": "cross-env NODE_ENV=production node index.js",
-    "prepare": "husky"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "start": "cross-env NODE_ENV=production node index.js"
   },
   "lint-staged": {
     "*.js": [

@@ -16,6 +16,7 @@ jobs:
       SERVICE_NAME: backend-test
 
     steps:
+      # Prepare
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -36,32 +37,21 @@ jobs:
       - name: Format Check
         run: npm run format:check
 
+      - name: Unit Test
+        run: npm test
+
       - name: Get Version
         run: |
-          VERSION=$(awk -F'"' '/^[[:space:]]*"version"/ {print $4}' package.json)
+          VERSION=$(node -p "require('./package.json').version")  
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create Test Ennvironment
         run: |
           echo IMAGE="$IMAGE_REPO:$VERSION" >> $GITHUB_ENV
           echo COMPOSE_FILE="$PWD/compose.test.yml" >> $GITHUB_ENV
 
-          cat > .env.test <<EOF
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          REDIS_URL=${{ secrets.REDIS_URL }}
-          SUPER_NAME=${{ secrets.SUPER_NAME }}
-          SUPER_EMAIL=${{ secrets.SUPER_EMAIL }}
-          SUPER_PASS=${{ secrets.SUPER_PASS }}
-          EOF
+      - name: Create env File
+        run: ./scripts/create_env.sh
 
       - name: Check Existing Image
         run: |
@@ -70,6 +60,7 @@ jobs:
             exit 1
           fi
 
+      # Build
       - name: Build Image
         run: |
           docker build -t "$IMAGE" .
@@ -100,6 +91,13 @@ jobs:
           --retry-connrefused \
           -f http://localhost:3000/api/health
 
+      # Release
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Push Image
         run: |
           docker push "$IMAGE"
@@ -112,6 +110,10 @@ jobs:
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 database || true
 
           docker compose --env-file .env.test -f "$COMPOSE_FILE" logs --tail 50 redis || true
+
+          docker compose --env-file .env.test -f "$COMPOSE_FILE" ps -a || true
+
+          docker image ls
 
           docker compose --env-file .env.test -f "$COMPOSE_FILE" down -v --remove-orphans
 
