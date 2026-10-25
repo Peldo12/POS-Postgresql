@@ -3,7 +3,7 @@ FROM node:26-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev && apk add --no-cache curl
+RUN RUN npm ci --omit=dev --ignore-scripts && apk add --no-cache curl
 COPY . .
 
 EXPOSE 3000
