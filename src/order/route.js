@@ -14,6 +14,7 @@ const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN];
 const strict = [ADMIN, OWNER, SUPER_ADMIN];
 
+router.use(limit(60));
 router.use(authenticate.headers);
 
 router.get(
