@@ -1,15 +1,21 @@
 const jwt = require('jsonwebtoken');
 
-function authenticate(req, res, next) {
+function headers(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error('Token required');
+    if (!authHeader) {
+      throw new Error('Token required');
+    }
 
     const [scheme, token] = authHeader.split(' ');
 
-    if (scheme !== 'Bearer') throw new Error('Wrong token format');
+    if (scheme !== 'Bearer') {
+      throw new Error('Wrong token format');
+    }
 
-    if (!token) throw new Error('Token still empty');
+    if (!token) {
+      throw new Error('Token still empty');
+    }
 
     const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
     req.user = decoded;
@@ -21,10 +27,12 @@ function authenticate(req, res, next) {
   }
 }
 
-function authBody(req, res, next) {
+function body(req, res, next) {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) throw new Error('Refresh Token is required');
+    if (!refreshToken) {
+      throw new Error('Refresh Token is required');
+    }
 
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
     req.user = decoded;
@@ -34,22 +42,4 @@ function authBody(req, res, next) {
   }
 }
 
-function authParams(req, res, next) {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error('Token required');
-
-    const [scheme, token] = authHeader.split(' ');
-    if (scheme !== 'Bearer') throw new Error('Wrong token format');
-    if (!token) throw new Error('Token not Found');
-
-    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
-
-    req.user = decoded;
-    next();
-  } catch (error) {
-    next(error);
-  }
-}
-
-module.exports = { authenticate, authBody };
+module.exports = { headers, body };

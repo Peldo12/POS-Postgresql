@@ -1,30 +1,12 @@
-// module
-const express = require('express');
-const router = express.Router();
-
+const control = require('./controller');
 const {
-  products,
-  byId,
-  create,
-  update,
-  updateStock,
-  remove,
-  restore,
-  stats,
-} = require('./controller');
-const {
+  router,
   authenticate,
   limit,
-  validateBody,
-  validateParams,
-  validateQuery,
-  idSchema,
+  validate,
   authorize,
-} = require('../config/baseConfig');
-
-const { transactionLimit } = require('../config/rateLimitConfig');
-const { oneMin, fiveMin } = require('../config/rateLimitTime');
-
+  idString,
+} = require('../config/base');
 const {
   createProductSchema,
   updateProductSchema,
@@ -34,59 +16,57 @@ const {
 
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
 
-// constants
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN];
 const strict = [ADMIN, OWNER, SUPER_ADMIN];
 
-//middleware
-router.use(authenticate);
+router.use(limit(60));
+router.use(authenticate.headers);
 
-// endpoint
-router.get('/stats', authorize(all), stats);
+router.get('/stats', authorize(all), control.stats);
 
-router.get('/', authorize(all), validateQuery(filterSchema), products);
+router.get('/', authorize(all), validate.query(filterSchema), control.products);
 
-router.get('/:id', authorize(all), validateParams(idSchema), byId);
+router.get('/:id', authorize(all), validate.params(idString), control.byId);
 
 router.post(
   '/create',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateBody(createProductSchema),
-  create
+  validate.body(createProductSchema),
+  control.create
 );
 
 router.put(
   '/:id/update',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateParams(idSchema),
-  validateBody(updateProductSchema),
-  update
+  validate.params(idString),
+  validate.body(updateProductSchema),
+  control.update
 );
 
 router.patch(
   '/stocks/update',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateBody(updateStockSchema),
-  updateStock
+  validate.body(updateStockSchema),
+  control.updateStock
 );
 
 router.patch(
   '/:id/remove',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateParams(idSchema),
-  remove
+  validate.params(idString),
+  control.remove
 );
 
 router.patch(
   '/:id/restore',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateParams(idSchema),
-  restore
+  validate.params(idString),
+  control.restore
 );
 
 module.exports = router;

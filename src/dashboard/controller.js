@@ -1,8 +1,5 @@
 const service = require('./service');
-const dateNow = require('../common/helpers/date');
-
 const success = require('../common/helpers/response');
-const AppError = require('../common/utils/AppError');
 
 async function dashboard(req, res, next) {
   try {

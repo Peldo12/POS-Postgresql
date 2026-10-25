@@ -90,7 +90,9 @@ async function getOrders(filters) {
   GROUP BY o.id, u.username
   `;
 
-  if (!sortMap[sort]) throw new AppError(400, 'Invalid sort column');
+  if (!sortMap[sort]) {
+    throw new AppError(400, 'Invalid sort column');
+  }
 
   const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
   orderSql += ` ORDER BY ${sortMap[sort]} ${direction}`;
@@ -219,5 +221,6 @@ module.exports = {
   getOrders,
   getItems,
   removeOrRestoreOrder,
+  updateStatusOrder,
   orderStats,
 };

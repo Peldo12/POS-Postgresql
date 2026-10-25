@@ -10,11 +10,13 @@ const AppError = require('../common/utils/AppError');
  */
 async function categories(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
-    const categories = await service.categories({ key: 'categories:all' });
+    const items = await service.categories({ key: 'categories:all' });
     success({
       message: 'Categories are loaded',
-      data: { categories },
+      data: { categories: items },
       res,
     });
     req.logger.info('Categories loaded', {
@@ -37,20 +39,26 @@ async function categories(req, res, next) {
  */
 async function byId(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
 
     const { id } = req.params;
-    if (isNaN(id)) throw new AppError(400, 'Invalid id');
+    if (isNaN(id)) {
+      throw new AppError(400, 'Invalid id');
+    }
 
-    const categories = await service.categories({
+    const items = await service.categories({
       id,
       key: `category:${id}`,
     });
-    if (categories.length === 0) throw new AppError(404, 'Category not found');
+    if (categories.length === 0) {
+      throw new AppError(404, 'Category not found');
+    }
 
     success({
       message: `Category id ${id}`,
-      data: { categories },
+      data: { categories: items },
       res,
     });
     req.logger.info('Category id loaded', {
@@ -73,6 +81,8 @@ async function byId(req, res, next) {
  */
 async function create(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
 
     const { name } = req.body;
@@ -108,11 +118,13 @@ async function create(req, res, next) {
  */
 async function update(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
+    const { userId, username } = req.user;
     const { id } = req.params;
     const { name } = req.body;
-    const { userId, username } = req.user;
 
-    const categories = await service.createOrUpdate({
+    const items = await service.createOrUpdate({
       ...req.body,
       id,
       update: true,
@@ -121,7 +133,7 @@ async function update(req, res, next) {
     });
     success({
       message: `Category ${name} updated`,
-      data: { categories },
+      data: { categories: items },
       res,
     });
     req.logger.info('Category updated', {
@@ -144,10 +156,12 @@ async function update(req, res, next) {
  */
 async function remove(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
 
     const { id } = req.params;
-    const categories = await service.createOrUpdate({
+    const items = await service.createOrUpdate({
       id,
       value: dateNow(),
       update: true,
@@ -156,7 +170,7 @@ async function remove(req, res, next) {
     });
     success({
       message: `Category ${categories.name} deleted`,
-      data: { categories },
+      data: { categories: items },
       res,
     });
     req.logger.info('Category removed', {
@@ -179,10 +193,12 @@ async function remove(req, res, next) {
  */
 async function restore(req, res, next) {
   try {
+    if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
 
     const { id } = req.params;
-    const categories = await service.createOrUpdate({
+    const items = await service.createOrUpdate({
       id,
       value: null,
       update: true,
@@ -192,7 +208,7 @@ async function restore(req, res, next) {
 
     success({
       message: `Category ${categories.name} restored`,
-      data: { categories },
+      data: { categories: items },
       res,
     });
     req.logger.info('Category removed', {

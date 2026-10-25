@@ -1,14 +1,11 @@
-const generateCrypto = require('../common/helpers/crypto');
-const dateNow = require('../common/helpers/date');
-
 const service = require('./service');
 const success = require('../common/helpers/response');
-const sendEmail = require('../common/helpers/email');
 const AppError = require('../common/utils/AppError');
 
 async function orders(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
 
     const filters = {
@@ -25,11 +22,11 @@ async function orders(req, res, next) {
       orderBy: req.query.orderBy || 'DESC',
     };
 
-    const { orders, pagination } = await service.orders(filters);
+    const { orders: items, pagination } = await service.orders(filters);
 
     success({
       message: 'Orders are loaded',
-      data: { orders },
+      data: { orders: items },
       pagination,
       res,
     });
@@ -49,6 +46,7 @@ async function orders(req, res, next) {
 async function byId(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
     const { orderId } = req.params;
     const data = await service.detailOrders({ orderId });
@@ -74,10 +72,12 @@ async function byId(req, res, next) {
 async function create(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
     const { products, payment } = req.body;
-    if (!Array.isArray(products) || products.length === 0)
+    if (!Array.isArray(products) || products.length === 0) {
       throw new AppError(400, 'Invalid or empty transactions');
+    }
 
     const { id } = await service.create({
       userId,
@@ -107,10 +107,11 @@ async function create(req, res, next) {
 async function remove(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
     const { orderId } = req.params;
 
-    const { id } = await service.removeOrRestore({
+    await service.removeOrRestore({
       orderId,
       value: new Date(),
     });
@@ -135,10 +136,11 @@ async function remove(req, res, next) {
 async function restore(req, res, next) {
   try {
     if (!req.user) throw new AppError(401, 'Unauthenticated');
+
     const { userId, username } = req.user;
     const { orderId } = req.params;
 
-    const { id } = await service.removeOrRestore({
+    await service.removeOrRestore({
       orderId,
       value: null,
     });

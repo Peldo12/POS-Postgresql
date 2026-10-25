@@ -1,5 +1,5 @@
 async function create(options) {
-  const { client, productId, userId } = options;
+  const { client, productId } = options;
   await client.query(
     `
     INSERT INTO product_info 

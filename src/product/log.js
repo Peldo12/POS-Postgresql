@@ -2,7 +2,7 @@ const { productJoin } = require('./model');
 
 async function create(options) {
   const { client, action, userId, data, refId, refType } = options;
-  const id = data.id;
+  const { id } = data;
   const { products } = await productJoin({ id });
   await client.query(
     `

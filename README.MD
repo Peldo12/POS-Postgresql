@@ -18,18 +18,18 @@ A RESTful backend API for a Point of Sale (POS) application, built with Node.js,
 
 ## 🛠️ Tech Stack
 
-| Layer        | Technology                     |
-|--------------|--------------------------------|
-| Runtime      | Node.js                        |
-| Framework    | Express.js                     |
-| Database     | PostgreSQL                     |
-| Query        | Raw SQL via `pg`               |
-| Auth         | JWT                            |
-| Password     | bcrypt                         |
-| Validation   | Joi                            |
-| Version Control | Git                        |
-| Deployment   | Render (or custom Docker)      |
-| Monitoring   | Better Stack                   |
+| Layer           | Technology                |
+| --------------- | ------------------------- |
+| Runtime         | Node.js                   |
+| Framework       | Express.js                |
+| Database        | PostgreSQL                |
+| Query           | Raw SQL via `pg`          |
+| Auth            | JWT                       |
+| Password        | bcrypt                    |
+| Validation      | Joi                       |
+| Version Control | Git                       |
+| Deployment      | Render (or custom Docker) |
+| Monitoring      | Better Stack              |
 
 ---
 
@@ -57,43 +57,43 @@ src/
 
 ### Authentication
 
-| Method | Endpoint            | Description                     |
-|--------|---------------------|---------------------------------|
-| POST   | `/api/auth/register`| Register a new user              |
-| POST   | `/api/auth/login`   | Authenticate & get access token  |
-| POST   | `/api/auth/logout`  | Revoke token                     |
-| POST   | `/api/auth/refresh` | Get a new access token           |
-| GET    | `/api/auth/me`      | Get current user profile         |
+| Method | Endpoint             | Description                     |
+| ------ | -------------------- | ------------------------------- |
+| POST   | `/api/auth/register` | Register a new user             |
+| POST   | `/api/auth/login`    | Authenticate & get access token |
+| POST   | `/api/auth/logout`   | Revoke token                    |
+| POST   | `/api/auth/refresh`  | Get a new access token          |
+| GET    | `/api/auth/me`       | Get current user profile        |
 
 ### Users
 
-| Method | Endpoint          | Description                     |
-|--------|-------------------|---------------------------------|
-| GET    | `/api/users`      | List all users (admin only)     |
-| GET    | `/api/users/:id`  | Get a specific user             |
-| POST   | `/api/users`      | Create a new user                |
-| PATCH  | `/api/users/:id`  | Update user details              |
-| DELETE | `/api/users/:id`  | Delete a user                    |
+| Method | Endpoint         | Description                 |
+| ------ | ---------------- | --------------------------- |
+| GET    | `/api/users`     | List all users (admin only) |
+| GET    | `/api/users/:id` | Get a specific user         |
+| POST   | `/api/users`     | Create a new user           |
+| PATCH  | `/api/users/:id` | Update user details         |
+| DELETE | `/api/users/:id` | Delete a user               |
 
 ### Products
 
-| Method | Endpoint               | Description                                   |
-|--------|------------------------|-----------------------------------------------|
-| GET    | `/api/products`        | List products with optional filters            |
-| GET    | `/api/products/:id`    | Get product details                            |
-| POST   | `/api/products`        | Create a new product                           |
-| PUT    | `/api/products/:id/update` | Update product details (full replace)   |
-| PATCH  | `/api/products/:id/remove` | Soft‑delete a product (mark as removed) |
-| PATCH  | `/api/products/:id/restore` | Restore a soft‑deleted product        |
+| Method | Endpoint                    | Description                             |
+| ------ | --------------------------- | --------------------------------------- |
+| GET    | `/api/products`             | List products with optional filters     |
+| GET    | `/api/products/:id`         | Get product details                     |
+| POST   | `/api/products`             | Create a new product                    |
+| PUT    | `/api/products/:id/update`  | Update product details (full replace)   |
+| PATCH  | `/api/products/:id/remove`  | Soft‑delete a product (mark as removed) |
+| PATCH  | `/api/products/:id/restore` | Restore a soft‑deleted product          |
 
 ### Categories
 
-| Method | Endpoint               | Description                     |
-|--------|------------------------|---------------------------------|
-| GET    | `/api/categories`      | List categories                              |
-| POST   | `/api/categories`      | Create a new category                          |
-| PATCH  | `/api/categories/:id/remove` | Soft‑delete a category               |
-| PATCH  | `/api/categories/:id/restore` | Restore a soft‑deleted category   |
+| Method | Endpoint                      | Description                     |
+| ------ | ----------------------------- | ------------------------------- |
+| GET    | `/api/categories`             | List categories                 |
+| POST   | `/api/categories`             | Create a new category           |
+| PATCH  | `/api/categories/:id/remove`  | Soft‑delete a category          |
+| PATCH  | `/api/categories/:id/restore` | Restore a soft‑deleted category |
 
 ---
 

@@ -10,19 +10,20 @@ const pool = new Pool({
   ssl: false,
 });
 
+async function testConnect() {
+  const client = await pool.connect();
+  try {
+    console.warn(`${new Date().toLocaleTimeString()}: Connected to PostgreSQL`);
+  } finally {
+    client.release();
+  }
+}
+
 async function initDB() {
   try {
     const hashed = await hash.create(process.env.SUPER_PASS);
 
-    pool.connect((err, client, release) => {
-      if (err) {
-        return console.error('Failed, on connect database:', err.stack);
-      }
-      console.log(
-        `${new Date().toLocaleTimeString()}: Connected to PostgreSQL`
-      );
-      release();
-    });
+    await testConnect();
 
     await pool.query(`
     CREATE TABLE IF NOT EXISTS roles(
@@ -200,7 +201,7 @@ async function initDB() {
     uploaded_by BIGINT NOT NULL
     )`);
   } catch (e) {
-    console.log(e);
+    console.error(e);
   }
 }
 

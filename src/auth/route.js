@@ -1,8 +1,6 @@
-const express = require('express');
-const router = express.Router();
+const { router, authenticate, limit, validate } = require('../config/base');
 
 const control = require('./controller');
-const validate = require('../common/middleware/validate');
 
 const {
   createSchema,
@@ -12,62 +10,42 @@ const {
   newPass,
 } = require('./validator');
 
-const {
-  authenticate,
-  authBody,
-} = require('../common/middleware/authentication');
-
-const limit = require('../common/middleware/limiter');
-const { authLimit } = require('../config/rateLimitConfig');
-const { fiveMin } = require('../config/rateLimitTime');
-
 router.post(
   '/register',
-  limit(authLimit),
+  limit(60),
   validate.body(createSchema),
   control.register
 );
 
-router.get('/verify', limit(authLimit), control.verify);
+router.get('/verify', limit(60), control.verify);
 
 router.post(
   '/re-verify',
-  limit(authLimit),
+  limit(60),
   validate.body(loginSchema),
   control.resendVerify
 );
 
-router.post(
-  '/login',
-  validate.body(loginSchema),
-  limit(authLimit, fiveMin),
-  control.login
-);
+router.post('/login', validate.body(loginSchema), limit(60), control.login);
 
-router.get('/me', authenticate, control.me);
-
-router.post('/refresh', validate.body(refreshSchema), authBody, control.token);
+router.get('/me', authenticate.headers, control.me);
 
 router.post(
-  '/logout',
-  authenticate,
-  authBody,
-  limit(authLimit),
-  control.logout
+  '/refresh',
+  validate.body(refreshSchema),
+  authenticate.body,
+  control.getToken
 );
+
+router.post('/logout', authenticate.headers, limit(60), control.logout);
 
 router.post(
   '/forgot',
   validate.body(forgotSchema),
-  limit(authLimit),
+  limit(60),
   control.forgotPass
 );
 
-router.patch(
-  '/reset',
-  validate.body(newPass),
-  limit(authLimit),
-  control.resetPass
-);
+router.patch('/reset', validate.body(newPass), limit(60), control.resetPass);
 
 module.exports = router;

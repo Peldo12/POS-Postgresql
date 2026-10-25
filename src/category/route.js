@@ -1,70 +1,56 @@
-const express = require('express');
-const router = express.Router();
-
 const {
+  router,
   authenticate,
   limit,
-  validateBody,
-  validateParams,
-  validateQuery,
-  idSchema,
+  validate,
   authorize,
-} = require('../config/baseConfig');
+  idNumber,
+} = require('../config/base');
 
-const {
-  categories,
-  byId,
-  create,
-  update,
-  remove,
-  restore,
-} = require('./controller');
+const control = require('./controller');
 const { categorySchema } = require('./validator');
 
-const { transactionLimit } = require('../config/rateLimitConfig');
-const { fiveMin } = require('../config/rateLimitTime');
-
 const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
-
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN];
 const strict = [ADMIN, OWNER, SUPER_ADMIN];
 
-router.use(authenticate);
+router.use(limit(60));
+router.use(authenticate.headers);
 
-router.get('/', authorize(all), categories);
-router.get('/:id', authorize(all), validateParams(idSchema), byId);
+router.get('/', authorize(all), control.categories);
+router.get('/:id', authorize(all), validate.params(idNumber), control.byId);
 
 router.post(
   '/create',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateBody(categorySchema),
-  create
+  validate.body(categorySchema),
+  control.create
 );
 
 router.put(
   '/:id/update',
-  limit(transactionLimit, fiveMin),
+  limit(60),
   authorize(strict),
-  validateParams(idSchema),
-  validateBody(categorySchema),
-  update
+  validate.params(idNumber),
+  validate.body(categorySchema),
+  control.update
 );
 
 router.patch(
   '/:id/remove',
-  limit(transactionLimit),
-  validateParams(idSchema),
+  limit(60),
+  validate.params(idNumber),
   authorize(strict),
-  remove
+  control.remove
 );
 
 router.patch(
   '/:id/restore',
-  limit(transactionLimit),
-  validateParams(idSchema),
+  limit(60),
+  validate.params(idNumber),
   authorize(strict),
-  restore
+  control.restore
 );
 
 module.exports = router;

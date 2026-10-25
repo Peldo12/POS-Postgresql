@@ -15,13 +15,16 @@ async function create(password) {
         passes: 3,
       },
       (err, key) => {
-        if (err) reject(err);
-        else resolve(key);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(key);
+        }
       }
     );
   });
 
-  return salt.toString('hex') + ':' + derivedKey.toString('hex');
+  return `${salt.toString('hex')}:${derivedKey.toString('hex')}`;
 }
 
 async function verify(password, stored) {
@@ -41,8 +44,11 @@ async function verify(password, stored) {
         passes: 3,
       },
       (err, key) => {
-        if (err) reject(err);
-        else resolve(key);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(key);
+        }
       }
     );
   });

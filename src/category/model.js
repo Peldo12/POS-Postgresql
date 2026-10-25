@@ -41,7 +41,7 @@ async function createCategory(options) {
 
 async function updateCategory(options) {
   const { id, name, description, userId, value } = options;
-  let params = [];
+  const params = [];
   let sql = `UPDATE 
       categories
     SET 
