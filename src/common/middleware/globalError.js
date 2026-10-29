@@ -18,7 +18,8 @@ function errorHandler(err, req, res, next) {
   }
 
   req.logger.error(err?.message, {
-    user: req.user?.id,
+    userId: req.user?.id,
+    username: req.user?.username,
     path: req.originalUrl,
     body,
     stack: err.stack,

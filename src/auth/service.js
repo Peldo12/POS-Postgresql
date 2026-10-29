@@ -1,60 +1,17 @@
 const model = require('./model');
-const redis = require('../config/redis');
-const dateNow = require('../common/helpers/date');
-const sendEmail = require('../common/helpers/email');
-const hash = require('../common/helpers/hash');
-const generateJWT = require('../common/helpers/jwt');
-const transaction = require('../common/helpers/transaction');
-const { bytes } = require('../common/helpers/crypto');
-const template = require('../common/utils/template.js');
-const AppError = require('../common/utils/AppError');
+const {
+  redis,
+  AppError,
+  bytes,
+  dateNow,
+  transaction,
+  sendEmail,
+  hash,
+  generateJWT,
+  template,
+} = require('../config/serviceConfig');
 
-// ======================
-// INTERNAL HELPERS
-// ======================
-
-async function saveToken({ key, value, options }) {
-  await redis.save({ key, value, options });
-}
-
-async function removeToken(key) {
-  await redis.remove(key);
-}
-
-/**
- * Buat token + simpan ke Redis + kirim email
- */
-async function createAndSendToken({
-  userId,
-  email,
-  type, // 'email' | 'pass'
-  subject,
-  ttlMinutes = 15,
-}) {
-  const token = bytes(type);
-  const key = `${type}-token:${token}`;
-
-  try {
-    await saveToken({
-      key,
-      value: userId,
-      options: {
-        EX: ttlMinutes * 60,
-      },
-    });
-
-    await sendEmail({
-      email,
-      subject,
-      html: template[type](token),
-    });
-  } catch (error) {
-    await removeToken(key);
-    throw error;
-  }
-
-  return token;
-}
+const { createAndSendToken } = require('./token');
 
 // ======================
 // AUTH SERVICE
@@ -65,6 +22,7 @@ async function createAndSendToken({
  */
 async function register({ username, email, password }) {
   const found = await model.userByUsernameOrEmail({ username, email });
+
   if (found) {
     const params = [];
     if (found.username === username) params.push('Username');
@@ -117,7 +75,7 @@ async function verifyEmail(token) {
     return await model.verifyEmail(client, userId);
   });
 
-  await removeToken(key);
+  await redis.remove(key);
   return {
     userId: user.id,
     username: updatedUser.username,
@@ -227,7 +185,7 @@ async function resetPassword({ token, password }) {
     });
   });
 
-  await removeToken(key);
+  await redis.remove(key);
 
   return { userId: updatedUser.id, username: updatedUser.username };
 }
@@ -259,7 +217,7 @@ async function issueTokens(user, isRefresh = false) {
     userId: user.id,
     username: user.username,
     role: user.role,
-    loginAt: isRefresh ? user.last_login_at : dateNow(),
+    loginAt: isRefresh ? user.last_login_at : dateNow('iso'),
     emailVerified: user.email_verified_at,
     generatedAt: dateNow('iso'),
   };
@@ -318,6 +276,7 @@ async function createToken(options) {
 // ======================
 
 module.exports = {
+  createAndSendToken,
   register,
   verifyEmail,
   resendVerification,

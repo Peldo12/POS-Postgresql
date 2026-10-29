@@ -1,8 +1,9 @@
 const path = require('path');
 
 const model = require('./model');
-const redis = require(path.join(__dirname, '../config/redis'));
-const AppError = require(path.join(__dirname, '../common/utils/AppError'));
+const { redis, AppError } = require(
+  path.join(__dirname, '../config/serviceConfig')
+);
 
 async function categories(options) {
   const { key } = options;

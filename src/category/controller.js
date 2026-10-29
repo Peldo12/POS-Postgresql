@@ -163,7 +163,7 @@ async function remove(req, res, next) {
     const { id } = req.params;
     const items = await service.createOrUpdate({
       id,
-      value: dateNow(),
+      value: dateNow('iso'),
       update: true,
       key: `category:${id}`,
       userId,

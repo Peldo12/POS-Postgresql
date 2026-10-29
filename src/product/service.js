@@ -1,11 +1,13 @@
 const info = require('./info');
 const log = require('./log');
 const model = require('./model');
-const redis = require('../config/redis');
-const transaction = require('../common/helpers/transaction');
-const { md5 } = require('../common/helpers/crypto');
-const logger = require('../common/middleware/logger');
-const AppError = require('../common/utils/AppError');
+const {
+  redis,
+  transaction,
+  md5,
+  logger,
+  AppError,
+} = require('../config/serviceConfig');
 
 function createProductKey(options) {
   if (options.id) {

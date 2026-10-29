@@ -1,12 +1,13 @@
-const control = require('./controller');
+const express = require('express');
+const router = express.Router();
+const control = require('../product/controller');
 const {
-  router,
   authenticate,
   limit,
   validate,
   authorize,
   idString,
-} = require('../config/base');
+} = require('../config/routeConfig');
 const {
   createProductSchema,
   updateProductSchema,
@@ -19,7 +20,6 @@ const { USER, ADMIN, OWNER, SUPER_ADMIN } = require('../constants/roles');
 const all = [USER, ADMIN, OWNER, SUPER_ADMIN];
 const strict = [ADMIN, OWNER, SUPER_ADMIN];
 
-router.use(limit(60));
 router.use(authenticate.headers);
 
 router.get('/stats', authorize(all), control.stats);

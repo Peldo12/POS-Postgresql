@@ -2,9 +2,12 @@ const crypto = require('crypto');
 
 function bytes(type) {
   const listType = {
-    pass: 8,
-    email: 16,
+    otp: 3,
+    pass: 4,
+    email: 8,
   };
+  if (!type) throw new Error('No type given');
+  if (!listType[type]) throw new Error('Not supported type');
   return crypto.randomBytes(listType[type]).toString('hex');
 }
 
