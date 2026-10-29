@@ -1,69 +1,67 @@
 const { pool } = require('../config/pool');
+const query = require('./query');
+const AppError = require('../common/utils/AppError');
 
 async function getUsers(options) {
-  const { deleted = true } = options;
+  const {
+    page = 1,
+    limit = 10,
+    sort = 'createdAt',
+    orderBy = 'DESC',
+  } = options;
+  const sortMap = {
+    id: 'u.id',
+    createdAt: 'u.created_at',
+  };
+
+  const offset = (page - 1) * limit;
+
+  const { whereClause, params } = query.buildUsersFilter(options);
+
   let sql = `
   SELECT 
     u.id, 
     u.username, 
     u.email_verified_at,
     r.name AS role,
-    u.last_login_at,
-    u.deleted_at
-  FROM users u 
-  LEFT JOIN roles r 
-  ON r.id = u.role_id
-  WHERE 1=1
-  `;
-  if (deleted) {
-    sql += ` AND u.deleted_at IS NULL`;
-  }
-
-  const { rows } = await pool.query(sql);
-  return rows;
-}
-
-async function userByIdShort(id) {
-  const { rows } = await pool.query(
-    `
-  SELECT 
-    u.id, 
-    u.username, 
-    u.email_verified_at,
-    r.name AS role,
-    u.last_login_at,
-    u.deleted_at
-  FROM users u 
-  LEFT JOIN roles r 
-  ON r.id = u.role_id
-  WHERE u.id = $1
-  `,
-    [id]
-  );
-  return rows[0];
-}
-
-async function userById(id, type = 'REFRESH_TOKEN') {
-  const { rows } = await pool.query(
-    `
-  SELECT 
-    u.id, 
-    u.username, 
-    u.email_verified_at,
-    r.name AS role,
-    t.token,
-    u.last_login_at,
-    u.deleted_at
+    u.deleted_at,
+    t.token
   FROM users u 
   LEFT JOIN roles r 
   ON r.id = u.role_id
   JOIN user_tokens t
   ON t.user_id = u.id
-  WHERE u.id = $1 AND t.type = $2
-  `,
-    [id, type]
-  );
-  return rows[0];
+  ${whereClause}`;
+
+  const countUser = `
+  SELECT COUNT(*) FROM users u 
+  JOIN user_tokens t
+  ON t.user_id = u.id
+  ${whereClause}`;
+  const countParams = [...params];
+
+  if (!sortMap[sort]) {
+    throw new AppError(400, 'Invalid sort column');
+  }
+
+  const direction = orderBy.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+  sql += ` ORDER BY ${sortMap[sort]} ${direction}`;
+  params.push(limit, offset);
+  sql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+  const [{ rows: count }, { rows: items }] = await Promise.all([
+    pool.query(countUser, countParams),
+    pool.query(sql, params),
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page: +page,
+      limit: +limit,
+      total: +count[0].count,
+    },
+  };
 }
 
 async function updateUser(options) {
@@ -106,7 +104,5 @@ async function updateUser(options) {
 
 module.exports = {
   getUsers,
-  userByIdShort,
-  userById,
   updateUser,
 };

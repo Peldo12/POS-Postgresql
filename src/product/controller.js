@@ -194,7 +194,7 @@ async function remove(req, res, next) {
 
     const { products: items } = await service.removeOrRestoreProduct({
       id,
-      value: dateNow(),
+      value: dateNow('iso'),
       user: req.user,
     });
 

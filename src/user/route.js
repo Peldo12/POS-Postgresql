@@ -1,10 +1,19 @@
+const express = require('express');
+const router = express.Router();
 const control = require('./controller');
-const { router, authenticate, validate, idString } = require('../config/base');
+const {
+  authenticate,
+  validate,
+  idString,
+  authorize,
+} = require('../config/routeConfig');
 
-router.use(authenticate);
+const { OWNER, SUPER_ADMIN } = require('../constants/roles');
+
+router.use(authenticate.headers);
+router.use(authorize([OWNER, SUPER_ADMIN]));
 
 router.get('/', control.users);
 router.get('/:id', validate.params(idString), control.byId);
-router.put('/:id/update', validate.params(idString), control.update);
 
 module.exports = router;

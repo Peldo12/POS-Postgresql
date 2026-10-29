@@ -1,5 +1,5 @@
-const productService = require('../product/service');
 const orderService = require('../order/service');
+const productService = require('../product/service');
 
 async function productStats() {
   const { stats } = await productService.getStats();

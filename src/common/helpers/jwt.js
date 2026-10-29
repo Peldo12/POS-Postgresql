@@ -13,7 +13,6 @@ function generateJWT({ payload, type = 'access' }) {
   };
 
   const { secret, expiresIn } = config[type] || config.access;
-
   if (!secret) {
     throw new Error(`JWT Secret for ${type} is not configured`);
   }
@@ -21,4 +20,18 @@ function generateJWT({ payload, type = 'access' }) {
   return jwt.sign(payload, secret, { expiresIn });
 }
 
-module.exports = generateJWT;
+function verifyJWT({ token, type = 'access' }) {
+  const config = {
+    access: process.env.ACCESS_SECRET,
+    refresh: process.env.REFRESH_SECRET,
+  };
+
+  const secret = config[type] || config.access;
+  if (!secret) {
+    throw new Error(`JWT Secret for ${type} is not configured`);
+  }
+
+  return jwt.verify(token, config[type]);
+}
+
+module.exports = { generateJWT, verifyJWT };

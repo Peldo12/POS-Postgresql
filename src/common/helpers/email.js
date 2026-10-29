@@ -10,6 +10,8 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async ({ email, subject, html }) => {
+  if (!email || !subject || !html)
+    throw new Error('Email, some requirement missing');
   await transporter.sendMail({
     from: 'POS-API <noreply@pos.com>',
     to: email,

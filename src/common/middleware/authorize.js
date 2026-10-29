@@ -1,6 +1,9 @@
 const AppError = require('../utils/AppError');
 
 function authorize(allowedRoles = []) {
+  if (!Array.isArray(allowedRoles))
+    throw new AppError(400, 'Wrong type allowed roles');
+  if (!allowedRoles.length) throw new AppError(400, 'No allowed roles given');
   return (req, res, next) => {
     try {
       const { role, emailVerified } = req.user;
@@ -12,7 +15,6 @@ function authorize(allowedRoles = []) {
 
       next();
     } catch (error) {
-      req.logger.error(error.message, { stack: error.stack });
       next(error);
     }
   };

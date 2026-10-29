@@ -1,4 +1,6 @@
-const { router, authenticate, limit, validate } = require('../config/base');
+const express = require('express');
+const router = express.Router();
+const { authenticate, limit, validate } = require('../config/routeConfig');
 
 const control = require('./controller');
 

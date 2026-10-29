@@ -1,12 +1,14 @@
 const model = require('./model');
-const redis = require('../config/redis');
-const productLog = require('../product/log');
+const {
+  redis,
+  logger,
+  getNextInvoice,
+  md5,
+  transaction,
+  AppError,
+} = require('../config/serviceConfig');
 const productService = require('../product/service');
-const AppError = require('../common/utils/AppError');
-const logger = require('../common/middleware/logger');
-const transaction = require('../common/helpers/transaction');
-const generateInvoice = require('../common/helpers/invoice');
-const { md5 } = require('../common/helpers/crypto');
+const productLog = require('../product/log');
 
 function createKey(options) {
   if (options.orderId) return `order:${options.orderId}`;
@@ -48,7 +50,7 @@ async function create(options) {
     const { userId, username, products, payment } = options;
     const { discount, tax, method } = payment;
 
-    const invoice = await generateInvoice();
+    const invoice = await getNextInvoice();
 
     const items = [];
     let subtotal = 0;

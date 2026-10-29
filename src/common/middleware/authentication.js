@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-
+const { verifyJWT } = require('../helpers/jwt');
 function headers(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
@@ -8,16 +8,10 @@ function headers(req, res, next) {
     }
 
     const [scheme, token] = authHeader.split(' ');
+    if (scheme !== 'Bearer') throw new Error('Wrong token format');
+    if (!token) throw new Error('Token still empty');
 
-    if (scheme !== 'Bearer') {
-      throw new Error('Wrong token format');
-    }
-
-    if (!token) {
-      throw new Error('Token still empty');
-    }
-
-    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
+    const decoded = verifyJWT({ token });
     req.user = decoded;
     next();
   } catch (e) {
@@ -34,7 +28,7 @@ function body(req, res, next) {
       throw new Error('Refresh Token is required');
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+    const decoded = verifyJWT({ token: refreshToken, type: 'refresh' });
     req.user = decoded;
     next();
   } catch (e) {
