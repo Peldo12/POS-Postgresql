@@ -3,7 +3,9 @@ const { verifyJWT } = require('../helpers/jwt');
 function headers(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error('Token required');
+    if (!authHeader) {
+      throw new Error('Token required');
+    }
 
     const [scheme, token] = authHeader.split(' ');
     if (scheme !== 'Bearer') throw new Error('Wrong token format');
@@ -22,7 +24,9 @@ function headers(req, res, next) {
 function body(req, res, next) {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) throw new Error('Refresh Token is required');
+    if (!refreshToken) {
+      throw new Error('Refresh Token is required');
+    }
 
     const decoded = verifyJWT({ token: refreshToken, type: 'refresh' });
     req.user = decoded;
