@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const control = require('../product/controller');
 const {
-  router,
   authenticate,
   limit,
   validate,

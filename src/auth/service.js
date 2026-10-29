@@ -2,13 +2,10 @@ const model = require('./model');
 const {
   redis,
   AppError,
-  bytes,
   dateNow,
   transaction,
-  sendEmail,
   hash,
   generateJWT,
-  template,
 } = require('../config/serviceConfig');
 
 const { createAndSendToken } = require('./token');
