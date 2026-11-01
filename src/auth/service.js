@@ -2,13 +2,11 @@ const model = require('./model');
 const {
   redis,
   AppError,
-  dateNow,
   transaction,
   hash,
-  generateJWT,
 } = require('../config/serviceConfig');
 
-const { createAndSendToken } = require('./token');
+const { createAndSendToken, issueTokens } = require('./token');
 
 // ======================
 // AUTH SERVICE
@@ -57,6 +55,8 @@ async function register({ username, email, password }) {
  * Verify email user
  */
 async function verifyEmail(token) {
+  if (!token) throw new AppError(400, 'No token given');
+
   const key = `email-token:${token}`;
   const userId = await redis.get(key);
   if (!userId) throw new AppError(400, 'Invalid or expired token');
@@ -64,7 +64,6 @@ async function verifyEmail(token) {
   const user = await model.userByIdentifier(userId);
   if (user.deleted_at)
     throw new AppError(403, 'Your account was deleted, contact admin');
-
   if (user.email_verified_at)
     throw new AppError(401, 'Your email already verified');
 
@@ -82,7 +81,7 @@ async function verifyEmail(token) {
 /**
  * Resend verification email
  */
-async function resendVerification({ username, password }) {
+async function resendVerification({ username }) {
   const user = await model.userByIdentifier(username);
 
   if (!user) throw new AppError(404, 'Username or email not registered');
@@ -92,9 +91,6 @@ async function resendVerification({ username, password }) {
 
   if (user.email_verified_at)
     throw new AppError(400, 'Your email already verified');
-
-  const match = await hash.verify(password, user.password);
-  if (!match) throw new AppError(401, 'Invalid Credentials');
 
   await createAndSendToken({
     userId: user.id,
@@ -207,43 +203,6 @@ async function validateRefreshToken({ userId, refreshToken }) {
 }
 
 /**
- * Issue Access + Refresh Token
- */
-async function issueTokens(user, isRefresh = false) {
-  const payload = {
-    userId: user.id,
-    username: user.username,
-    role: user.role,
-    loginAt: isRefresh ? user.last_login_at : dateNow('iso'),
-    emailVerified: user.email_verified_at,
-    generatedAt: dateNow('iso'),
-  };
-
-  const accessToken = generateJWT({ payload });
-  const token = generateJWT({
-    payload,
-    type: 'refresh',
-  });
-
-  if (!isRefresh) {
-    await transaction(async (client) => {
-      return await model.createToken({
-        client,
-        id: user.id,
-        token,
-        type: 'REFRESH_TOKEN',
-      });
-    });
-  }
-
-  return {
-    userId: user.id,
-    accessToken,
-    refreshToken: token,
-  };
-}
-
-/**
  * Get user by ID (untuk /me dan logout)
  */
 async function getById(options) {
@@ -273,7 +232,6 @@ async function createToken(options) {
 // ======================
 
 module.exports = {
-  createAndSendToken,
   register,
   verifyEmail,
   resendVerification,

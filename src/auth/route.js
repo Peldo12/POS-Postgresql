@@ -21,12 +21,7 @@ router.post(
 
 router.get('/verify', limit(60), control.verify);
 
-router.post(
-  '/re-verify',
-  limit(60),
-  validate.body(loginSchema),
-  control.resendVerify
-);
+router.post('/re-verify', limit(60), control.resendVerify);
 
 router.post('/login', validate.body(loginSchema), limit(60), control.login);
 
