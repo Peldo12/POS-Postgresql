@@ -203,7 +203,7 @@ async function validateRefreshToken({ userId, refreshToken }) {
 }
 
 /**
- * Get user by ID (untuk /me dan logout)
+ * Get user by ID only for me/logout
  */
 async function getById(options) {
   const user = await model.userById(options);
@@ -216,7 +216,7 @@ async function getById(options) {
 }
 
 /**
- * Create / Update token (dipakai di logout juga)
+ * Create / Update token
  */
 async function createToken(options) {
   return transaction(async (client) => {

@@ -11,6 +11,8 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  validateRefreshToken,
+  getById,
 } = require('../../src/auth/service');
 const { createAndSendToken, issueTokens } = require('../../src/auth/token');
 const model = require('../../src/auth/model');
@@ -589,6 +591,127 @@ describe('Auth Service', () => {
       expect(result).toEqual({
         userId: 'some_uuid',
         username: 'user_name',
+      });
+    });
+  });
+
+  describe('Refresh Token', () => {
+    const input = {
+      userId: 'some_uuid',
+      refreshToken: 'some_token_refresh',
+    };
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test('should throw error when user not found', async () => {
+      // Arrange
+      model.userById.mockResolvedValue(null);
+
+      // Assert
+      await expect(validateRefreshToken(input)).rejects.toThrow();
+      expect(issueTokens).not.toHaveBeenCalled();
+    });
+
+    test('should throw error when user already deleted', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({
+        deleted_at: 'user_deleted',
+      });
+
+      // Assert
+      await expect(validateRefreshToken(input)).rejects.toThrow();
+      expect(issueTokens).not.toHaveBeenCalled();
+    });
+
+    test('should throw error when user has no token', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({
+        deleted_at: null,
+        token: null,
+      });
+
+      // Assert
+      await expect(validateRefreshToken(input)).rejects.toThrow();
+      expect(issueTokens).not.toHaveBeenCalled();
+    });
+
+    test('should throw error when user token mismatch', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({
+        deleted_at: null,
+        token: 'other_token',
+      });
+
+      // Assert
+      await expect(validateRefreshToken(input)).rejects.toThrow();
+      expect(issueTokens).not.toHaveBeenCalled();
+    });
+
+    test('should return user access and refresh', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({
+        deleted_at: null,
+        token: 'some_token_refresh',
+      });
+      issueTokens.mockResolvedValue({
+        userId: 'some_uuid',
+        accessToken: 'some_token_access',
+        refreshToken: 'some_token_refresh',
+      });
+
+      // Act
+      const result = await validateRefreshToken(input);
+
+      // Assert
+      expect(result).toEqual({
+        userId: 'some_uuid',
+        accessToken: 'some_token_access',
+        refreshToken: 'some_token_refresh',
+      });
+    });
+  });
+
+  describe('Get Profile', () => {
+    const input = {};
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test('should throw error when db failed', async () => {
+      // Arrange
+      model.userById.mockRejectedValue(new Error());
+
+      // Assert
+      await expect(getById(input)).rejects.toThrow();
+    });
+
+    test('should throw error when user not found', async () => {
+      // Arrange
+      model.userById.mockResolvedValue(null);
+
+      // Assert
+      await expect(getById(input)).rejects.toThrow();
+    });
+
+    test('should throw error when user was deleted', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({ deleted_at: 'some_date' });
+
+      // Assert
+      await expect(getById(input)).rejects.toThrow();
+    });
+
+    test('should return user detail when no error', async () => {
+      // Arrange
+      model.userById.mockResolvedValue({ id: 'some_uuid', deleted_at: null });
+
+      // Assert
+      await expect(getById(input)).resolves.toEqual({
+        user: {
+          id: 'some_uuid',
+          deleted_at: null,
+        },
       });
     });
   });

@@ -24,7 +24,7 @@ async function createOrUpdate(options) {
   const { name, update, key } = options;
   let result;
   if (!update) {
-    const found = await categories({ name, key });
+    const found = await module.exports.categories({ name, key });
     for (const item of found) {
       if (item.name === name) {
         throw new AppError(400, `Category ${name} already exists`);

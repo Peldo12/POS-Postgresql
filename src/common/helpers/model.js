@@ -8,7 +8,7 @@ async function getSequence() {
 }
 
 async function transaction(callback) {
-  if (callback) throw new Error('No func');
+  if (!callback) throw new Error('No func');
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

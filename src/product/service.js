@@ -18,7 +18,7 @@ function createProductKey(options) {
 }
 
 async function getProducts(options) {
-  const key = createProductKey(options);
+  const key = module.exports.createProductKey(options);
   const cache = await redis.get(key);
 
   if (cache) return cache;
@@ -104,6 +104,8 @@ async function updateStocks(options, user) {
   await transaction(async (client) => {
     for (const product of options) {
       const { quantity, id } = product;
+      const { products: found } = await model.productJoin({ id });
+      if (!found.length) throw new AppError(404, 'Product not found');
 
       if (quantity < 0) {
         const updated = await model.decreaseStock(product, client);
@@ -115,6 +117,20 @@ async function updateStocks(options, user) {
           throw new AppError(404, 'Product not found');
         }
       }
+
+      await info.create({
+        client,
+        productId: id,
+        userId,
+      });
+      await log.create({
+        client,
+        action: 'UPDATE',
+        userId,
+        data: found[0],
+        refId: id,
+        refType: 'PRODUCT',
+      });
 
       result.push({ id, status: 'success' });
       logger.info('Product stock updated', {
@@ -148,7 +164,7 @@ async function removeOrRestoreProduct(options) {
   await transaction(async (client) => {
     const action = isRemove ? 'REMOVE' : 'RESTORE';
 
-    const result = await model.removeOrRestore({
+    await model.removeOrRestore({
       client,
       ...options,
     });
@@ -158,7 +174,7 @@ async function removeOrRestoreProduct(options) {
       userId: user.userId,
       action,
       data: products[0],
-      refId: result[0].product_id,
+      refId: id,
       refType: 'PRODUCT',
     });
   });
@@ -191,6 +207,7 @@ async function getStats() {
 }
 
 module.exports = {
+  createProductKey,
   getProducts,
   createProduct,
   updateProduct,
