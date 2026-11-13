@@ -139,7 +139,7 @@ async function removeOrRestore(options) {
   if (isRemove) {
     if (!items.length) throw new AppError(404, 'Order not found or deleted');
   } else {
-    if (!items.length) throw new AppError(404, 'Order not deleted');
+    if (!items.length) throw new AppError(400, 'Order not deleted');
   }
 
   const result = await transaction(async (client) => {
@@ -157,9 +157,12 @@ async function updateStatus(options) {
 
   if (!order.length) throw new AppError(404, 'Order not found');
 
-  return transaction(async (client) => {
+  const result = await transaction(async (client) => {
     await model.updateStatusOrder({ client, orderId });
   });
+  await redis.clearCache(['order', 'orders']);
+
+  return result;
 }
 
 async function getStats(options) {
