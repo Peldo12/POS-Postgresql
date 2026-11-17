@@ -2,11 +2,12 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ quiet: true });
 }
 const { initRedis } = require('./src/config/redis');
-const { initDB } = require('./src/config/pool');
+const { connect, initDB } = require('./src/config/pool');
 const app = require('./src/app');
 const port = process.env.PORT || 8000;
 
 app.listen(port, async () => {
+  await connect();
   await initDB();
   await initRedis();
   console.warn(`${new Date().toLocaleTimeString()}: Server started on ${port}`);

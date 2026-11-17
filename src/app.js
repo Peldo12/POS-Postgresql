@@ -5,6 +5,7 @@ const cors = require('cors');
 
 app.use(express.json(), cors());
 
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.get('/api/', (req, res) => {

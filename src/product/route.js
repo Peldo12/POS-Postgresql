@@ -6,7 +6,7 @@ const {
   limit,
   validate,
   authorize,
-  idString,
+  idNumber,
 } = require('../config/routeConfig');
 const {
   createProductSchema,
@@ -26,7 +26,7 @@ router.get('/stats', authorize(all), control.stats);
 
 router.get('/', authorize(all), validate.query(filterSchema), control.products);
 
-router.get('/:id', authorize(all), validate.params(idString), control.byId);
+router.get('/:id', authorize(all), validate.params(idNumber), control.byId);
 
 router.post(
   '/create',
@@ -40,7 +40,7 @@ router.put(
   '/:id/update',
   limit(60),
   authorize(strict),
-  validate.params(idString),
+  validate.params(idNumber),
   validate.body(updateProductSchema),
   control.update
 );
@@ -57,7 +57,7 @@ router.patch(
   '/:id/remove',
   limit(60),
   authorize(strict),
-  validate.params(idString),
+  validate.params(idNumber),
   control.remove
 );
 
@@ -65,7 +65,7 @@ router.patch(
   '/:id/restore',
   limit(60),
   authorize(strict),
-  validate.params(idString),
+  validate.params(idNumber),
   control.restore
 );
 

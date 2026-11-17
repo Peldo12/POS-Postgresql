@@ -31,15 +31,27 @@ const createProductSchema = joi
 
 const updateProductSchema = joi
   .object({
-    sku: joi.string().required().label('SKU'),
-    barcode: joi.string().min(3).required().label('Barcode'),
-    name: joi.string().required().label('Name'),
-    buy: joi.number().min(0).required().label('Buy'),
-    sell: joi.number().min(0).required().label('Sell'),
+    sku: joi.string().alphanum().optional().label('SKU'),
+    barcode: joi.string().alphanum().min(3).optional().label('Barcode'),
+    name: joi.string().optional().label('Name'),
+    buy: joi.number().min(0).optional().label('Buy'),
+    sell: joi.number().min(0).optional().label('Sell'),
     category_id: joi.number().integer().min(1).label('Category ID'),
-    stock: joi.number().integer().default(0).optional().label('Stock'),
-    minimum_stock: joi.number().integer().optional().label('Minimum stock'),
-    weight: joi.number().min(0).label('Weight'),
+    stock: joi
+      .number()
+      .integer()
+      .positive()
+      .default(0)
+      .optional()
+      .label('Stock'),
+    minimum_stock: joi
+      .number()
+      .integer()
+      .positive()
+      .default(5)
+      .optional()
+      .label('Minimum stock'),
+    weight: joi.number().positive().label('Weight'),
     image: joi.string().optional().allow(null).label('Image'),
   })
   .required()

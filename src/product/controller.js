@@ -199,7 +199,7 @@ async function remove(req, res, next) {
     });
 
     success({
-      message: `Product ${products[0].name} removed`,
+      message: 'Product removed',
       data: { items },
       res,
     });
@@ -233,7 +233,7 @@ async function restore(req, res, next) {
       user: req.user,
     });
     success({
-      message: `Product ${products[0].name} restored`,
+      message: 'Product restored',
       data: { items },
       res,
     });
